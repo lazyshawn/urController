@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ipc.h>
-#include <sys/shm.h>
 #include <vector>
 /*shared memory header*/
 /*Eigen matrix*/
@@ -28,7 +27,6 @@ MatrixXf Radius(18, 1);
 /*Eigen matrix*/
 int cnt = 0;
 float coordinate[18];
-extern void *shm_addr;
 using namespace std;
 
 /* 伺服主程序 */
@@ -58,7 +56,8 @@ void servo_function(UrDriver *ur) {
   std::vector<double> jnt_angleD(6);
   std::vector<double> com_jnt_angle(6);
 
-  memcpy(coordinate, shm_addr, 72);
+  /* Get target information */
+  // memcpy(coordinate, shm_addr, 72);
 
   // Get the current time
   curtime = GetCurrentTime();

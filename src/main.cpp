@@ -33,22 +33,13 @@ struct shm_interface shm_servo_inter;
 // 线程之间的的互斥锁-全局
 pthread_mutex_t servo_inter_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int shmid; // 共享内存标识符
-void *shm_addr = NULL;
 extern SVO pSVO;
 extern pthread_mutex_t mymutex;
 std::condition_variable rt_ur_msg_cond;
 std::condition_variable ur_msg_cond;
 std::string host_name = "10.249.181.201";
 
-/* 申请一块内存并初始化 */
 UrDriver *testUr;
-void stack_prefault(void) {
-  unsigned char dummy[MAX_SAFE_STACK];
-  //初始化dummy[]所在的内存空间
-  memset(dummy, 0, MAX_SAFE_STACK);
-  return;
-}
 
 int main(int argc, char** argv) {
   // 线程标识符
@@ -83,12 +74,11 @@ int main(int argc, char** argv) {
   }
 
   /* Lock memory */
+  // 防止内存交换
   if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
     perror("mlockall failed");
     exit(-2);
   }
-
-  stack_prefault();
 
   /* 一秒后启动控制回路 */
   clock_gettime(CLOCK_MONOTONIC, &t);
@@ -107,21 +97,6 @@ int main(int argc, char** argv) {
 
   /* reset save buffer */
   SaveDataReset();
-  //    for(int i=0;i<6;i++){
-  //        pSVO.CurTheta.t[i]=0.3;
-  //        pSVO.jnk.c[i]=cos(pSVO.CurTheta.t[i]);
-  //        pSVO.jnk.s[i]=sin(pSVO.CurTheta.t[i]);
-  //    }
-
-  /*创建共享内存*/
-  shmid = shmget((key_t)1234, 72, 0666 | IPC_CREAT); //共享内存段名称为1234
-  if (shmid == -1) {
-    fprintf(stderr, "shmat failed\n");
-    exit(EXIT_FAILURE);
-  }
-  /*创建共享内存*/
-  /*将共享内存连接到当前进程的地址空间(映射共享内存)*/
-  shm_addr = (void *)shmat(shmid, 0, 0);
 
 #ifndef ROBOT_OFFLINE
   urRobot.uploadProg();
@@ -129,11 +104,6 @@ int main(int argc, char** argv) {
   while (1) {
     if (shm_servo_inter.status_control == EXIT_C) {
       printf("Program end\n");
-      // 分离共享内存
-      if (shmdt(shm_addr) == -1) {
-        printf("shmdt error!\n");
-        exit(1);
-      }
       break;
     }
 
@@ -179,8 +149,6 @@ int main(int argc, char** argv) {
 #ifndef ROBOT_OFFLINE
   urRobot.halt();
 #endif
-  // IPC对象只显示共享内存
-  // system("ipcs -m");
   exit(1);
 } // main()
 
@@ -294,7 +262,7 @@ void *interface_function(void *param) {
     case 'd':
     case 'D': // Demo function
       // JntDemoFunction(&interface_svo);
-      printf("---------------Now you are in PosOriServoMode!-----------------");
+      printf("---------------Now you are in PosOriServoMode!---------------\n");
       PosOriServo(&interface_svo.PosOriServoFlag);
       ChangeHandData(&interface_svo.Path);
       break;
@@ -349,13 +317,6 @@ void DisplayCurrentInformation(PATH path, int flag, GAIN gain) {
   default:
     printf("Error path mode\n");
   }
-  /*printf("K_vt = %f, %f, %f, %f, %f, %f, %f\n", gain.K_vt[0], gain.K_vt[1],
-     gain.K_vt[2], gain.K_vt[3], gain.K_vt[4],gain.K_vt[5], gain.K_vt[6]);
-      printf("K_pt = %f, %f, %f, %f, %f, %f, %f\n", gain.K_pt[0], gain.K_pt[1],
-     gain.K_pt[2], gain.K_pt[3], gain.K_pt[4],gain.K_vt[5], gain.K_vt[6]);
-      printf("K_it = %f, %f, %f, %f, %f, %f, %f\n", gain.K_it[0], gain.K_it[1],
-     gain.K_it[2], gain.K_it[3], gain.K_it[4],gain.K_it[5], gain.K_it[6]);
-  */
   if (flag == OFF) {
     printf("Current Joint angle[deg]:%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
            pSVO.CurTheta.t[0] * Rad2Deg, pSVO.CurTheta.t[1] * Rad2Deg,

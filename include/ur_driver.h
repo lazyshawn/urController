@@ -1,3 +1,7 @@
+/* *****************************************************************
+ * UR驱动
+ * @ur_driver.cpp
+ * *****************************************************************/
 
 #ifndef UR_DRIVER_H_
 #define UR_DRIVER_H_
@@ -40,6 +44,7 @@ public:
   // 构造函数
   UrDriver(std::condition_variable &rt_msg_cond,
            std::condition_variable &msg_cond, std::string host,
+           // 参数默认值
            unsigned int reverse_port = 50007, double servoj_time = 0.016,
            unsigned int safety_count_max = 12, double max_time_step = 0.08,
            double min_payload = 0., double max_payload = 1.);
@@ -66,6 +71,7 @@ public:
   bool openServo();
   void closeServo(std::vector<double> positions);
 
+  // 关节角的三次轨迹插补
   std::vector<double> interp_cubic(double t, double T,
                                    std::vector<double> p0_pos,
                                    std::vector<double> p1_pos,

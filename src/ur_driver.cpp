@@ -144,7 +144,7 @@ bool UrDriver::uploadProg() {
   char buf[128];
   cmd_str = "def driverProg():\n";
 
-  sprintf(buf, "\tMULT_jointstate = %i\n", MULT_JOINTSTATE_);
+  snprintf(buf, sizeof(buf), "\tMULT_jointstate = %i\n", MULT_JOINTSTATE_);
   cmd_str += buf;
 
   cmd_str += "\tSERVO_IDLE = 0\n";
@@ -176,10 +176,10 @@ bool UrDriver::uploadProg() {
   cmd_str += "\t\t\telif state == SERVO_RUNNING:\n";
 
   if (sec_interface_->robot_state_->getVersion() >= 3.1)
-    sprintf(buf, "\t\t\t\tservoj(q, t=%.4f, lookahead_time=0.03)\n",
+    snprintf(buf, sizeof(buf), "\t\t\t\tservoj(q, t=%.4f, lookahead_time=0.03)\n",
             servoj_time_);
   else
-    sprintf(buf, "\t\t\t\tservoj(q, t=%.4f)\n", servoj_time_);
+    snprintf(buf, sizeof(buf), "\t\t\t\tservoj(q, t=%.4f)\n", servoj_time_);
   cmd_str += buf;
 
   cmd_str += "\t\t\telse:\n";
@@ -188,7 +188,8 @@ bool UrDriver::uploadProg() {
   cmd_str += "\t\tend\n";
   cmd_str += "\tend\n";
 
-  sprintf(buf, "\tsocket_open(\"%s\", %i)\n", ip_addr_.c_str(), REVERSE_PORT_);
+  snprintf(buf, sizeof(buf), "\tsocket_open(\"%s\", %i)\n", ip_addr_.c_str(),
+           REVERSE_PORT_);
   cmd_str += buf;
 
   cmd_str += "\tthread_servo = run servoThread()\n";
@@ -272,31 +273,31 @@ void UrDriver::setJointNames(std::vector<std::string> jn) { joint_names_ = jn; }
 
 void UrDriver::setToolVoltage(unsigned int v) {
   char buf[256];
-  sprintf(buf, "sec setOut():\n\tset_tool_voltage(%d)\nend\n", v);
+  snprintf(buf, sizeof(buf), "sec setOut():\n\tset_tool_voltage(%d)\nend\n", v);
   rt_interface_->addCommandToQueue(buf);
   // print_debug(buf); Changed by Jiang
 }
 void UrDriver::setFlag(unsigned int n, bool b) {
   char buf[256];
-  sprintf(buf, "sec setOut():\n\tset_flag(%d, %s)\nend\n", n,
+  snprintf(buf, sizeof(buf), "sec setOut():\n\tset_flag(%d, %s)\nend\n", n,
           b ? "True" : "False");
   rt_interface_->addCommandToQueue(buf);
-  // print_debug(buf); Changed by Jiang
+  printf("%s", buf);
 }
 void UrDriver::setDigitalOut(unsigned int n, bool b) {
   char buf[256];
   if (firmware_version_ < 2) {
-    sprintf(buf, "sec setOut():\n\tset_digital_out(%d, %s)\nend\n", n,
+    snprintf(buf, sizeof(buf), "sec setOut():\n\tset_digital_out(%d, %s)\nend\n", n,
             b ? "True" : "False");
   } else if (n > 15) {
-    sprintf(buf, "sec setOut():\n\tset_tool_digital_out(%d, %s)\nend\n", n - 16,
+    snprintf(buf, sizeof(buf), "sec setOut():\n\tset_tool_digital_out(%d, %s)\nend\n", n - 16,
             b ? "True" : "False");
   } else if (n > 7) {
-    sprintf(buf, "sec setOut():\n\tset_configurable_digital_out(%d, %s)\nend\n",
+    snprintf(buf, sizeof(buf), "sec setOut():\n\tset_configurable_digital_out(%d, %s)\nend\n",
             n - 8, b ? "True" : "False");
 
   } else {
-    sprintf(buf, "sec setOut():\n\tset_standard_digital_out(%d, %s)\nend\n", n,
+    snprintf(buf, sizeof(buf), "sec setOut():\n\tset_standard_digital_out(%d, %s)\nend\n", n,
             b ? "True" : "False");
   }
   rt_interface_->addCommandToQueue(buf);
@@ -305,9 +306,9 @@ void UrDriver::setDigitalOut(unsigned int n, bool b) {
 void UrDriver::setAnalogOut(unsigned int n, double f) {
   char buf[256];
   if (firmware_version_ < 2) {
-    sprintf(buf, "sec setOut():\n\tset_analog_out(%d, %1.4f)\nend\n", n, f);
+    snprintf(buf, sizeof(buf), "sec setOut():\n\tset_analog_out(%d, %1.4f)\nend\n", n, f);
   } else {
-    sprintf(buf, "sec setOut():\n\tset_standard_analog_out(%d, %1.4f)\nend\n", n, f);
+    snprintf(buf, sizeof(buf), "sec setOut():\n\tset_standard_analog_out(%d, %1.4f)\nend\n", n, f);
   }
 
   rt_interface_->addCommandToQueue(buf);
@@ -317,7 +318,7 @@ void UrDriver::setAnalogOut(unsigned int n, double f) {
 bool UrDriver::setPayload(double m) {
   if ((m < maximum_payload_) && (m > minimum_payload_)) {
     char buf[256];
-    sprintf(buf, "sec setOut():\n\tset_payload(%1.3f)\nend\n", m);
+    snprintf(buf, sizeof(buf), "sec setOut():\n\tset_payload(%1.3f)\nend\n", m);
     rt_interface_->addCommandToQueue(buf);
     printf("%s", buf);
     return true;

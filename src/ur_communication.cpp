@@ -64,8 +64,8 @@ bool UrCommunication::start() {
   // wait for some traffic so the UR socket doesn't die in version 3.1.
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   char tmp[64];
-  sprintf(tmp, "Firmware version detected: %.7f\n", robot_state_->getVersion());
-  printf(tmp);
+  snprintf(tmp, sizeof(tmp), "Firmware version detected: %.7f\n", robot_state_->getVersion());
+  printf("%s", tmp);
   close(pri_sockfd_);
 
   printf(

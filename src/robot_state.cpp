@@ -9,12 +9,14 @@ RobotState::RobotState(std::condition_variable &msg_cond) {
   RobotState::setDisconnected();
   robot_mode_running_ = robotStateTypeV30::ROBOT_MODE_RUNNING;
 }
+
 double RobotState::ntohd(uint64_t nf) {
   double x;
   nf = be64toh(nf);
   memcpy(&x, &nf, sizeof(x));
   return x;
 }
+
 void RobotState::unpack(uint8_t *buf, unsigned int buf_length) {
   /* Returns missing bytes to unpack a message, or 0 if all data was parsed */
   unsigned int offset = 0;
@@ -34,8 +36,8 @@ void RobotState::unpack(uint8_t *buf, unsigned int buf_length) {
       break;
     case messageType::ROBOT_STATE:
       //'len' is inclusive the 5 bytes from messageSize and messageType
-      RobotState::unpackRobotState(buf, offset, len); 
-                                         
+      RobotState::unpackRobotState(buf, offset, len);
+
       break;
     case messageType::PROGRAM_STATE_MESSAGE:
       // Don't do anything atm...

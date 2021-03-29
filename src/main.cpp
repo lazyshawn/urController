@@ -26,7 +26,7 @@
 void *display_function(void *param);
 void *interface_function(void *param);
 void DisplayMenu(void);
-void DisplayCurrentInformation(PATH path, int flag, GAIN gain);
+void DisplayCurrentInformation();
 
 // 线程结束标志
 struct shm_interface shm_servo_inter;
@@ -259,9 +259,7 @@ void *interface_function(void *param) {
       break;
     case 'i':
     case 'I': // Show the information of robot
-      DisplayCurrentInformation(interface_svo.Path,
-                                interface_svo.PosOriServoFlag,
-                                interface_svo.Gain);
+      DisplayCurrentInformation();
       break;
     case 'd':
     case 'D': // Demo function
@@ -277,8 +275,7 @@ void *interface_function(void *param) {
       break;
     default:
       DisplayMenu();
-      DisplayCurrentInformation(interface_svo.Path,interface_svo.PosOriServoFlag,
-                                interface_svo.Gain);
+      DisplayCurrentInformation();
       break;
     }
     interface_counter++;
@@ -299,11 +296,13 @@ void DisplayMenu(void) {
   printf("End:*********************[e : E :ESC]\n");
 }
 
-void DisplayCurrentInformation(PATH path, int flag, GAIN gain) {
-  printf(
-      "---------------------- Current Information ------------------------\n");
-  printf("Path frequency = %f [Hz]\n", path.Freq);
-  switch (path.Mode) {
+void DisplayCurrentInformation() {
+  SVO svoLocal;
+  SvoReadFromServo(&svoLocal);
+
+  printf("--------------------- Current Information -----------------------\n");
+  printf("Path frequency = %f [Hz]\n", svoLocal.Path.Freq);
+  switch (svoLocal.Path.Mode) {
   case 0:
     printf("Path mode: Sin\n");
     break;
@@ -322,30 +321,31 @@ void DisplayCurrentInformation(PATH path, int flag, GAIN gain) {
   default:
     printf("Error path mode\n");
   }
-  if (flag == OFF) {
+  if (svoLocal.PosOriServoFlag == OFF) {
     printf("Current Joint angle[deg]:%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
-           pSVO.CurTheta.t[0] * Rad2Deg, pSVO.CurTheta.t[1] * Rad2Deg,
-           pSVO.CurTheta.t[2] * Rad2Deg, pSVO.CurTheta.t[3] * Rad2Deg,
-           pSVO.CurTheta.t[4] * Rad2Deg, pSVO.CurTheta.t[5] * Rad2Deg);
+           svoLocal.CurTheta.t[0] * Rad2Deg, svoLocal.CurTheta.t[1] * Rad2Deg,
+           svoLocal.CurTheta.t[2] * Rad2Deg, svoLocal.CurTheta.t[3] * Rad2Deg,
+           svoLocal.CurTheta.t[4] * Rad2Deg, svoLocal.CurTheta.t[5] * Rad2Deg);
 
-    printf("Goal Joint Angle[Deg]:%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
-           path.Goal[0] * Rad2Deg, path.Goal[1] * Rad2Deg,
-           path.Goal[2] * Rad2Deg, path.Goal[3] * Rad2Deg,
-           path.Goal[4] * Rad2Deg, path.Goal[5] * Rad2Deg);
-    printf(
-        "------------------------------------------------------------------\n");
+    printf("Goal  Joint  Angle [Deg]:%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
+           svoLocal.Path.Goal[0] * Rad2Deg, svoLocal.Path.Goal[1] * Rad2Deg,
+           svoLocal.Path.Goal[2] * Rad2Deg, svoLocal.Path.Goal[3] * Rad2Deg,
+           svoLocal.Path.Goal[4] * Rad2Deg, svoLocal.Path.Goal[5] * Rad2Deg);
+    printf("---------------------------------------------------------------\n");
   } else {
     printf("Current Position of "
            "hand:\nX[m]\tY[m]\tZ[m]\tAlpha[deg]\tBeta[deg]\tGama[deg]\n");
-    printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n", pSVO.CurPos.t[0],
-           pSVO.CurPos.t[1], pSVO.CurPos.t[2], pSVO.CurPos.t[3] * Rad2Deg,
-           pSVO.CurPos.t[4] * Rad2Deg, pSVO.CurPos.t[5] * Rad2Deg);
+    printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
+           svoLocal.CurPos.t[0], svoLocal.CurPos.t[1], svoLocal.CurPos.t[2],
+           svoLocal.CurPos.t[3] * Rad2Deg, svoLocal.CurPos.t[4] * Rad2Deg,
+           svoLocal.CurPos.t[5] * Rad2Deg);
 
     printf("Goal Position of  hand:"
            "\nX[m]\tY[m]\tZ[m]\tAlpha[deg]\tBeta[deg]\tGama[deg]\n");
-    printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n", path.Goal[0],
-           path.Goal[1], path.Goal[2], path.Goal[3] * Rad2Deg,
-           path.Goal[4] * Rad2Deg, path.Goal[5] * Rad2Deg);
+    printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
+           svoLocal.Path.Goal[0], svoLocal.Path.Goal[1], svoLocal.Path.Goal[2],
+           svoLocal.Path.Goal[3] * Rad2Deg, svoLocal.Path.Goal[4] * Rad2Deg,
+           svoLocal.Path.Goal[5] * Rad2Deg);
     printf("---------------------------------------------------------------\n");
   }
 }

@@ -81,12 +81,12 @@ typedef struct {
   int SamplingFreq;
   double SamplingTime;
   double Time;                     // 当前时间
-  int ServoFlag;
-  int NewPathFlag;
-  int PathtailFlag;
-  THETA CurTheta;                  // 机械臂关节角
-  THETA CurDTheta;
-  THETA RefTheta;                  // 目标关节角
+  int ServoFlag;                   // 伺服控制开始的标志
+  int NewPathFlag;                 // 取出新路径标志
+  int PathtailFlag;                // 路劲完成标志
+  THETA CurTheta;                  // 机械臂关节角(deg)
+  THETA CurDTheta;                 // 机械臂关节角(rad)
+  THETA RefTheta;                  // 目标关节角(deg)
   THETA RefDTheta;
   THETA deltaTheta;
   THETA xianweiTheta;
@@ -95,7 +95,7 @@ typedef struct {
   POS RefPos;
   FORCE CurForce;
   GAIN Gain;
-  PATH Path;
+  PATH Path;                      // 正在进行的路径
   MARKPOS markpos;                // mark位置 (float t[18])
   DISTOGRIPPER distogripper;
   POSITION errpos;

@@ -117,7 +117,10 @@ void servo_function(UrDriver *ur) {
 
   // Set path.orig
   if (servoP.NewPathFlag == ON) {
-    for (i = 0; i < 6; i++) servoP.Path.Orig[i] = servoP.CurPos.t[i];
+    for (i = 0; i < 6; i++) {
+      servoP.Path.Orig[i] = servoP.CurTheta.t[i];
+      std::cout << "=> Set orig [" << i << "] as: "<< servoP.Path.Orig[i] << std::endl;
+    }
     servoP.NewPathFlag = OFF;
   }
   /* 计算轨迹插补点(关节角目标值) */

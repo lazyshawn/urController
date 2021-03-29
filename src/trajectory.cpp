@@ -8,48 +8,41 @@ void initTrjBuff() { PathBuff.data_num = 0; }
 
 /* 添加轨迹队列 */
 int PutTrjBuff(PATH *path) {
-  int data_num;
-
+  // if the buffer is full
   if (PathBuff.data_num >= TRAJECTORY_LENGTH) {
     printf("Error: The path buffer is full\n");
     return 1;
   } else {
-    data_num = PathBuff.data_num;
-
-    if ((data_num > 0) && (data_num <= TRAJECTORY_LENGTH)) {
-      for (int i = data_num; i > 0; i--) {
-        PathBuff.Path[i] = PathBuff.Path[i - 1];
+    if (PathBuff.data_num > 0) {
+      for (int i = PathBuff.data_num; i > 0; i--) {
+        PathBuff.Path[i] = PathBuff.Path[i-1];
       }
     }
     PathBuff.Path[0] = *path;
-    PathBuff.data_num = data_num + 1;
-
-  } // if(PathBuff.data_num >= TRAJECTORY_LENGTH){} else{};
+    PathBuff.data_num++;
+  } // else
   return 0;
 }
 
 /* 弹出轨迹队列 */
 int GetTrjBuff(PATH *path) {
-  int data_num;
-
   // if the buffer is not empty
   if (PathBuff.data_num < 1) {
     printf("Error: The path buffer is empty");
     return 1;
   } else {
-    data_num = PathBuff.data_num;
-
+    // 取出队首元素
     *path = PathBuff.Path[0];
-
-    for (int i = 0; i < data_num; i++) {
-      PathBuff.Path[i] = PathBuff.Path[i + 1];
+    // 更新路径队列
+    for (int i = 0; i < PathBuff.data_num; i++) {
+      PathBuff.Path[i] = PathBuff.Path[i+1];
     }
-    PathBuff.data_num = data_num - 1;
+    PathBuff.data_num--;
   }
   return 0;
 }
 
-// ステップ関数による軌道補間 | 步进函数的轨迹插补
+// ステップ関数による軌道補間 | 阶跃函数的轨迹插补
 double CalcStepTraje(double orig, double goal, double freq, double time) {
   if (time < 1.0 / freq / 2.0)
     return orig;
@@ -98,7 +91,7 @@ double CalcSinTraje(double orig, double goal, double freq, double time) {
   return ref;
 }
 
-// 3 次関数による速度軌道補間
+// 3 次関数による速度軌道補間 | 3次函数的速度插补
 double Calc3JiTrajeVelo(double orig, double goal, double freq, double time) {
   double ref = 0.0;
   double time_n = freq * time;
@@ -108,7 +101,7 @@ double Calc3JiTrajeVelo(double orig, double goal, double freq, double time) {
   return ref;
 }
 
-// 5 次関数による速度軌道補間
+// 5 次関数による速度軌道補間 | 5次函数的速度插补
 double Calc5JiTrajeVelo(double orig, double goal, double freq, double time) {
   double ref = 0.0;
   double time_n = freq * time;
@@ -119,7 +112,7 @@ double Calc5JiTrajeVelo(double orig, double goal, double freq, double time) {
   return ref;
 }
 
-// sin 関数による速度軌道補間
+// sin 関数による速度軌道補間 | sin函数的速度插补
 double CalcSinTrajeVelo(double orig, double goal, double freq, double time) {
   double ref = 0.0;
   double time_n = freq * time;

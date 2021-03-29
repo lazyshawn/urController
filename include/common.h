@@ -46,21 +46,23 @@ typedef struct {
 } FORCE;
 
 typedef struct {
-  double Orig[6];
-  double Goal[6];
-  double Freq;
-  int Mode;
+  double Orig[6];  // 轨迹起点
+  double Goal[6];  // 轨迹终点
+  double Freq;     // 单位时间运动的比例 (1/T)
+  int Mode;        // 插补模式
 } PATH;
 
 typedef struct {
   double t[6];
 } HND_PA;
+
 typedef struct {
   double K_vt[6];
   double K_pt[6];
   double K_it[6];
 } GAIN;
 
+/* Mark位置向量 */
 typedef struct {
   float t[18];
 } MARKPOS;

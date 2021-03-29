@@ -6,9 +6,10 @@
 #include "../include/adrobot_etc.h"
 #include "../include/adrobot_system.h"
 
-pthread_mutex_t servoMutex = PTHREAD_MUTEX_INITIALIZER;
-// shared variable
+// Shared variable
 SVO pSVO;
+// 线程访问全局变量的互斥锁
+pthread_mutex_t servoMutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* 读取全局共享变量到线程 */
 void SvoReadFromServo(SVO *data) {
@@ -23,49 +24,47 @@ void SvoWriteFromServo(SVO *data) {
   pthread_mutex_unlock(&servoMutex);
 }
 
+/* 手动添加关节角路劲 */
 void ChangePathData(PATH *path) {
-  int i;
   double tmp[6];
-  printf("\nPath frequency [1/s] = ");
+  printf("Path frequency [1/s] = \n");
   scanf("%lf", &path->Freq);
   printf("PATH: SIN(0) 5JI(1) 3JI(2) 1JI(3) STEP(4)\n");
-  printf("\nPath mode = ");
+  printf("Path mode = \n");
   scanf("%d", &path->Mode);
 
-  for (i = 0; i < 6; i++) {
-    printf("\nAngle of joint %d [deg] = ", i + 1);
+  for (int i = 0; i < 6; i++) {
+    printf("Angle of joint %d [deg] = \n", i + 1);
     scanf("%lf", &tmp[i]);
+    path->Goal[i] = tmp[i] * Deg2Rad;
   }
-
-  for (i = 0; i < 6; i++) path->Goal[i] = tmp[i] * Deg2Rad;
 }
 
+/* 手动添加末端路劲 */
 void ChangeHandData(PATH *path) {
-  printf("\nPath frequency [1/s] = ");
+  printf("Path frequency [1/s] = \n");
   scanf("%lf", &path->Freq);
   printf("PATH: SIN(0) 5JI(1) 3JI(2) 1JI(3) STEP(4)\n");
   printf("Path mode = ");
   scanf("%d", &path->Mode);
   double tmp[6];
-  printf("Coordinates(X) of the hand[m]:");
+  printf("Coordinates(X) of the hand[m]:\n");
   scanf("%lf", &tmp[0]);
-  printf("Coordinates(Y) of the hand[m]:");
+  printf("Coordinates(Y) of the hand[m]:\n");
   scanf("%lf", &tmp[1]);
-  printf("Coordinates(Z) of the hand[m]:");
+  printf("Coordinates(Z) of the hand[m]:\n");
   scanf("%lf", &tmp[2]);
-  printf("Alpha of the hand[deg]:");
+  printf("Alpha of the hand[deg]:\n");
   scanf("%lf", &tmp[3]);
-  printf("Beta of the hand[deg]:");
+  printf("Beta of the hand[deg]:\n");
   scanf("%lf", &tmp[4]);
-  printf("Gama(Z) of the hand[deg]:");
+  printf("Gama(Z) of the hand[deg]:\n");
   scanf("%lf", &tmp[5]);
   for (int i = 0; i < 6; i++) {
-    if (i < 3)
-      path->Goal[i] = tmp[i];
-    else
-      path->Goal[i] = tmp[i] * Deg2Rad;
+    path->Goal[i] = i<3 ? tmp[i] : tmp[i]*Deg2Rad;
   }
 }
+
 void PosOriServo(int *posoriservoflag) { *posoriservoflag = ON; }
 
 void SetPosOriSvo(SVO *data) {
@@ -75,7 +74,7 @@ void SetPosOriSvo(SVO *data) {
   pSVO.PosOriServoFlag = data->PosOriServoFlag;
   pSVO.Path = data->Path;
 
-  initTrjBuff();
+  // initTrjBuff();
   ret = PutTrjBuff(&pSVO.Path);
 
   printf("ret=%d\n", ret);
@@ -110,7 +109,7 @@ void SetJntSvo(SVO *data) {
   pSVO.Path = data->Path;
   pSVO.Gain = data->Gain;
 
-  initTrjBuff();
+  // initTrjBuff();
 
   ret = PutTrjBuff(&pSVO.Path);
 

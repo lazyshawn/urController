@@ -25,21 +25,21 @@ private:
   double maximum_time_step_;
   double minimum_payload_;
   double maximum_payload_;
-  std::vector<std::string> joint_names_;
-  std::string ip_addr_;
   const int MULT_JOINTSTATE_ = 1000000;
   const int MULT_TIME_ = 1000000;
-  const unsigned int REVERSE_PORT_;
+  std::vector<std::string> joint_names_;
+  std::string ip_addr_;                   // 机械臂IP地址
+  const unsigned int REVERSE_PORT_;       // 通信端口
   int incoming_sockfd_;
-  int new_sockfd_;
+  int new_sockfd_;                        // 发送控制指令的套接字
   bool reverse_connected_;
-  double servoj_time_;
-  bool executing_traj_;
-  double firmware_version_;
+  double servoj_time_;                    // 伺服周期
+  bool executing_traj_;                   // 执行轨迹规划的标志
+  double firmware_version_;               // 机械臂硬件版本号
 
 public:
-  UrRealtimeCommunication *rt_interface_;
-  UrCommunication *sec_interface_;
+  UrRealtimeCommunication *rt_interface_; // 
+  UrCommunication *sec_interface_;        // 
 
   // 构造函数
   UrDriver(std::condition_variable &rt_msg_cond,

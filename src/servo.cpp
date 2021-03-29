@@ -27,13 +27,13 @@ MatrixXf Radius(18, 1);
 /*Eigen matrix*/
 int cnt = 0;
 float coordinate[18];
-using namespace std;
+// using namespace std;
 
 /* 伺服主程序 */
 void servo_function(UrDriver *ur) {
   int i, ret;
   double curtime;
-  float P[6];
+  float P[6];          // 末端夹持点(TCP)的位置坐标
   SVO servoP;
   SVO_SAVE servoSave;
   PATH path;
@@ -49,40 +49,31 @@ void servo_function(UrDriver *ur) {
   MATRIX_D PosErrorTrn = Zeros(6, 6);
   MATRIX_D jcb = Zeros(6, 6);
 
-  JACOBIAN *jcbn;
   JACOBIAN jcb1;
-  jcbn = &jcb1;
+  JACOBIAN *jcbn = &jcb1;
   std::vector<double> jnt_angle(6);
   std::vector<double> jnt_angleD(6);
   std::vector<double> com_jnt_angle(6);
 
-  /* Get target information */
-  // memcpy(coordinate, shm_addr, 72);
+  /* Copy global SVO */
+  SvoReadFromServo(&servoP);
 
   // Get the current time
   curtime = GetCurrentTime();
-  SvoReadFromServo(&servoP);
   servoP.Time = curtime;
 
+  /* Get target information */
+  // memcpy(coordinate, shm_addr, 72);
   for (i = 0; i < 18; i++) {
     servoP.markpos.t[i] = coordinate[i];
     Curpos(i, 0) = coordinate[i];
   }
 
-// obtain the current state of ur
+  /* Obtain the current state of ur */
 #ifndef ROBOT_OFFLINE
   jnt_angle = ur->rt_interface_->robot_state_->getQActual();
   jnt_angleD = ur->rt_interface_->robot_state_->getQdActual();
-#else
-  // TEST CODE
-  jnt_angle[0] = 0.0;
-  jnt_angle[1] = 0.0;
-  jnt_angle[2] = 0.0;
-  jnt_angle[3] = 0.0;
-  jnt_angle[4] = 0.0;
-  jnt_angle[5] = 0.0;
 #endif
-
   // copy the UR state
   for (i = 0; i < 6; i++) {
     servoP.CurTheta.t[i] = jnt_angle[i];
@@ -93,43 +84,48 @@ void servo_function(UrDriver *ur) {
     servoP.CurDTheta.t[i] = jnt_angleD[i];
   }
 
-  /* update the kinematics calculation*/
+  /* Update the kinematics calculation*/
   // 返回末端夹持点的位置坐标
   pos = ur_kinematics(&servoP.jnk, hnd_ori);
+  for (i = 0; i < 6; i++) P[i] = pos(i+1, 1);
 
-  for (i = 0; i < 6; i++) P[i] = pos(i + 1, 1);
   // 计算tcp到末端标记点的距离
   GripperToPoint = ComputeDistance(coordinate, 18, P, 6);
   // 计算点在执行器坐标系下的半径
   Radius = ComputeRadiusVector(coordinate, 18, P, 6);
 
-  for (i = 0; i < 6; i++)
-    servoP.distogripper.t[i] = GripperToPoint(0, i);
-  // cout<<computeGrippersToDeformableObjectJacobian(N)<<endl;
-  for (i = 0; i < 6; i++)
-    servoP.CurPos.t[i] = pos(i + 1, 1); // The start position of the tcp.
+  for (i = 0; i < 6; i++) servoP.distogripper.t[i] = GripperToPoint(0, i);
+  // std::cout<<computeGrippersToDeformableObjectJacobian(N)<<std::endl;
+  // The start position of the tcp.
+  for (i = 0; i < 6; i++) servoP.CurPos.t[i] = pos(i+1, 1);
+
+  /* Pop path info */
   // ************* should be noticed *************
-  if (servoP.NewPathFlag == ON) {
-    if (servoP.PathtailFlag == OFF) {
+  if (servoP.NewPathFlag == ON) { // 新路径
+    if (servoP.PathtailFlag == OFF) {  // 路径未结束
       ret = GetTrjBuff(&path);
       if (ret == 0) {
-        servoP.Path = path;
+        servoP.Path = path;  // 取出新的路劲信息
         SetStartTime(curtime);
       } else {
         servoP.PathtailFlag = ON;
       }
-      // the case  GetOffsettime > 1/servoP.path.Freq
+      // the case GetOffsettime > 1/servoP.path.Freq
       servoP.NewPathFlag = ON;
     }
-  }
+  } // if (servoP.NewPathFlag == ON)
+
+  // Set path.orig
   if (servoP.NewPathFlag == ON) {
-    for (i = 0; i < 6; i++)
-      servoP.Path.Orig[i] = servoP.CurPos.t[i];
+    for (i = 0; i < 6; i++) servoP.Path.Orig[i] = servoP.CurPos.t[i];
     servoP.NewPathFlag = OFF;
   }
+  /* 计算轨迹插补点(关节角目标值) */
+  // 角度的伺服控制
   if (servoP.ServoFlag == ON && servoP.PosOriServoFlag == OFF)
     CalcJntRefPath(GetOffsetTime(), &servoP.Path, &servoP.RefTheta,
                    &servoP.RefDTheta);
+  // 末端位姿的伺服控制
   if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON) {
     CalcPosRefPath(GetOffsetTime(), &servoP.Path, &servoP.RefPos);
     CalcPointpos(GetOffsetTime(), &servoP.Path, &servoP.refmarkpos);
@@ -138,7 +134,7 @@ void servo_function(UrDriver *ur) {
       Refpos(i, 0) = servoP.refmarkpos.t[i];
     }
     for (i = 0; i < 6; i++) {
-      ref_pos(i + 1, 1) = servoP.RefPos.t[i];
+      ref_pos(i+1, 1) = servoP.RefPos.t[i];
     }
 
     B0 = CalcB0(pos(4, 1), pos(5, 1), pos(6, 1));
@@ -147,16 +143,16 @@ void servo_function(UrDriver *ur) {
     /*shape_servo*/
     for (int i = 0; i < 6; i++) {
       for (int j = 0; j < 6; j++) {
-        jacobiE(i, j) = jcb(i + 1, j + 1);
+        jacobiE(i, j) = jcb(i+1, j+1);
       }
     }
-    //              cout<<jacobiE<<endl;
+    // std::cout << jacobiE << std::endl;
     MatrixXf j_def(18, 6);
     j_def = ComputeGripperToObjectJacobian(GripperToPoint, Radius);
-    //              cout<<j_def<<endl;
+    // std::cout << j_def << std::endl;
     MatrixXf J(18, 6);
     J = j_def * jacobiE;
-    //              cout<<J<<endl;
+    // std::cout << J << std::endl;
     JacobiSVD<MatrixXf> svd(J, ComputeThinU | ComputeThinV);
     float pinvtoler = 1.e-6; // choose your tolerance wisely
     MatrixXf singularValues_inv = svd.singularValues();
@@ -168,18 +164,18 @@ void servo_function(UrDriver *ur) {
     }
     MatrixXf pinvmat = svd.matrixV() * singularValues_inv.asDiagonal() *
                        svd.matrixU().transpose();
-    //              cout<<pinvmat<<endl;
+    // std::cout << pinvmat << std::endl;
     errorpos = Refpos - Curpos;
-    //           cout<<errorpos<<endl;
+    // std::cout << errorpos << std::endl;
     for (i = 0; i < 18; i++) {
       servoP.errpos.t[i] = errorpos(i, 0);
-      //               cout<<servoP.refmarkpos.t[i];
+      // std::cout << servoP.refmarkpos.t[i] << std::endl;
     }
     DeltaJnt = pinvmat * errorpos;
-    //           cout<<DeltaJnt<<endl;
+    // std::cout << DeltaJnt << std::endl;
     for (i = 0; i < 6; i++)
       servoP.deltaTheta.t[i] = DeltaJnt(i, 0);
-    //           cout<<DeltaJnt;
+    // std::cout << DeltaJnt << std::endl;
     for (i = 0; i < 6; i++) { //限位，每8ms关节运动量不超过1.4度
       if ((DeltaJnt(i, 0) * Rad2Deg) > 1.4)
         DeltaJnt(i, 0) = 0.024434609;
@@ -194,13 +190,14 @@ void servo_function(UrDriver *ur) {
       servoP.RefTheta.t[i] = servoP.CurTheta.t[i] + DeltaJntG(i, 0);
 
     /*shape_servo*/
-  }
-  for (i = 0; i < 6; i++)
-    com_jnt_angle[i] = servoP.RefTheta.t[i];
+  } // if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON)
+
+  for (i = 0; i < 6; i++) com_jnt_angle[i] = servoP.RefTheta.t[i];
 #ifndef ROBOT_OFFLINE
+  // 机械臂执行运动指令
   ur->servoj(com_jnt_angle, 1);
 #endif
-  // interact with the GUI
+  /* 记录待保存的数据 */
   if (servoP.ServoFlag == ON) {
     if (cnt % EXP_DATA_INTERVAL == 0) {
       servoSave.Time = GetCurrentTime();
@@ -219,12 +216,8 @@ void servo_function(UrDriver *ur) {
       servoSave.xianweiTheta = servoP.xianweiTheta;
       ExpDataSave(&servoSave);
     }
-    // for(int i=0;i<6;i++){
-    //     servoP.CurTheta.t[i]=servoP.RefTheta.t[i];
-    //     servoP.jnk.c[i]=cos(servoP.CurTheta.t[i]);
-    //     servoP.jnk.s[i]=sin(servoP.CurTheta.t[i]);
-    // }
   }
+  /* Interact with the GUI */
   SvoWriteFromServo(&servoP);
   cnt++;
 }

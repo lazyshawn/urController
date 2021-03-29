@@ -16,7 +16,7 @@ UrDriver::UrDriver(std::condition_variable &rt_msg_cond,
       servoj_time_(servoj_time) {
   char buffer[256];
   struct sockaddr_in serv_addr;
-  int n, flag = 1;
+  int flag = 1;
 
   firmware_version_ = 0;
   reverse_connected_ = false;
@@ -116,8 +116,8 @@ void UrDriver::servoj(std::vector<double> positions, int keepalive) {
     printf("UrDriver::servoj called without a reverse connection present\n");
     return;
   }
-  unsigned int bytes_written;
   int tmp;
+  unsigned int bytes_written;
   unsigned char buf[28];
   for (int i = 0; i < 6; i++) {
     tmp = htonl((int)(positions[i] * MULT_JOINTSTATE_));
@@ -241,12 +241,13 @@ void UrDriver::closeServo(std::vector<double> positions) {
 }
 
 bool UrDriver::start() {
-  if (!sec_interface_->start())
-    return false;
+  // 获得硬件版本信息
+  if (!sec_interface_->start()) return false;
   firmware_version_ = sec_interface_->robot_state_->getVersion();
+  // 设置硬件版本信息
   rt_interface_->robot_state_->setVersion(firmware_version_);
-  if (!rt_interface_->start())
-    return false;
+  // 建立通信
+  if (!rt_interface_->start()) return false;
   ip_addr_ = rt_interface_->getLocalIp();
 
   std::cout << "Listening on" + ip_addr_ + ":" + std::to_string(REVERSE_PORT_) + "\n";

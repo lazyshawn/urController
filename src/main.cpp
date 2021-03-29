@@ -32,11 +32,12 @@ void DisplayCurrentInformation(PATH path, int flag, GAIN gain);
 struct shm_interface shm_servo_inter;
 // 线程之间的的互斥锁-全局
 pthread_mutex_t servo_inter_mutex = PTHREAD_MUTEX_INITIALIZER;
-
+// 全局的共享变量
 extern SVO pSVO;
 extern pthread_mutex_t mymutex;
-std::condition_variable rt_ur_msg_cond;
-std::condition_variable ur_msg_cond;
+
+std::condition_variable rt_ur_msg_cond, ur_msg_cond;
+// UR的IP地址(静态)
 std::string host_name = "10.249.181.201";
 
 UrDriver *testUr;
@@ -184,18 +185,21 @@ void *display_function(void *param) {
     }
     if ((display_svo.PosOriServoFlag == OFF) && (display_svo.ServoFlag == ON) &&
         (GetOffsetTime() < (1.0 / (double)display_svo.Path.Freq))) {
-      for (i = 0; i < 6; i++)
-        jnt_angle[i] = display_svo.CurTheta.t[i] * Rad2Deg;
       printf("\n");
       printf("T: %.2f Ref[deg]: %.2f %.2f %.2f %.2f %.2f %.2f Jnt[deg]:%.2f "
-             "%.2f %.2f %.2f %.2f %.2f\r",
-             time, display_svo.RefTheta.t[0] * Rad2Deg,
+             "%.2f %.2f %.2f %.2f %.2f\r", time,
+             display_svo.RefTheta.t[0] * Rad2Deg,
              display_svo.RefTheta.t[1] * Rad2Deg,
              display_svo.RefTheta.t[2] * Rad2Deg,
              display_svo.RefTheta.t[3] * Rad2Deg,
              display_svo.RefTheta.t[4] * Rad2Deg,
-             display_svo.RefTheta.t[5] * Rad2Deg, jnt_angle[0], jnt_angle[1],
-             jnt_angle[2], jnt_angle[3], jnt_angle[4], jnt_angle[5]);
+             display_svo.RefTheta.t[5] * Rad2Deg, 
+             display_svo.CurTheta.t[0] * Rad2Deg,
+             display_svo.CurTheta.t[1] * Rad2Deg,
+             display_svo.CurTheta.t[2] * Rad2Deg,
+             display_svo.CurTheta.t[3] * Rad2Deg,
+             display_svo.CurTheta.t[4] * Rad2Deg,
+             display_svo.CurTheta.t[5] * Rad2Deg);
     }
     usleep(25000); // delay for 25 microseconds
   } while (shm_servo_inter.status_control != EXIT_C);
@@ -241,7 +245,7 @@ void *interface_function(void *param) {
     case 'p': // joint reference setting
     case 'P':
       printf("-----------------Now you are in JntSvoMode------------------\n");
-      printf("Set the path frequency,path mode and goal joint position");
+      printf("Set the path frequency,path mode and goal joint position\n");
       interface_svo.PosOriServoFlag = OFF;
       ChangePathData(&interface_svo.Path);
       break;
@@ -272,8 +276,9 @@ void *interface_function(void *param) {
       shm_servo_inter.status_control = EXIT_C;
       break;
     default:
-      DisplayMenu(); // DisplayCurrentInformation(interface_svo.Path,
-                     // interface_svo.Gain);
+      DisplayMenu();
+      DisplayCurrentInformation(interface_svo.Path,interface_svo.PosOriServoFlag,
+                                interface_svo.Gain);
       break;
     }
     interface_counter++;

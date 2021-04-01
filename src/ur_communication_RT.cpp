@@ -1,5 +1,5 @@
 
-#include "../include/ur_realtime_communication.h"
+#include "../include/ur_communication_RT.h"
 
 UrRealtimeCommunication::UrRealtimeCommunication(
     std::condition_variable &msg_cond, std::string host,

@@ -3,7 +3,6 @@
 #define UR_REALTIME_COMMUNICATION_H_
 
 #include "robot_state_RT.h"
-#include "do_output.h"
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>

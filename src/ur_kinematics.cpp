@@ -1,5 +1,6 @@
 
-#include "../include/adrobot_kinematics.h"
+#include "../include/ur_kinematics.h"
+
 MATRIX_D RPY2RotMat(double alpha, double beta, double gamma) {
   MATRIX_D rotMat = Zeros(3, 3);
 

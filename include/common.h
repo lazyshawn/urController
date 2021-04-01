@@ -1,20 +1,6 @@
 
 #ifndef COMMON_H
 #define COMMON_H
-#include "adrobot_kinematics.h"
-#include <math.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-/*Eigen header*/
-#include <eigen3/Eigen/Dense>
-using namespace Eigen;
-/*Eigen header*/
 
 #define DEBUG
 //#define ROBOT_OFFLINE
@@ -24,7 +10,6 @@ using namespace Eigen;
 #define EXIT_C 255
 #define EXP_DATA_LENGTH 10000
 #define EXP_DATA_INTERVAL 1
-#define NSEC_PER_SEC (1000000000)
 #define Rad2Deg 180.0 / M_PI
 #define Deg2Rad M_PI / 180.0
 
@@ -76,6 +61,17 @@ typedef struct {
 } POSITION;
 // extern MatrixXd MinimumDistance(1,10);
 
+// 关节角的余弦正弦值
+typedef struct {
+  double c[6];
+  double s[6];
+} JOINTLINK;
+typedef struct {
+  double Jcb[6][6];
+  double TrnsJcb[6][6];
+  double invJcb[6][6];
+} JACOBIAN;
+
 typedef struct {
   int PosOriServoFlag;
   int SamplingFreq;
@@ -120,5 +116,6 @@ typedef struct {
   POSITION errpos;
   POSITION refmarkpos;
 } SVO_SAVE;
+
 #endif
 

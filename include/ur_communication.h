@@ -1,7 +1,6 @@
 #ifndef UR_COMMUNICATION_H_
 #define UR_COMMUNICATION_H_
 
-#include "do_output.h"
 #include "robot_state.h"
 #include <chrono>              // C++11 时间库
 #include <condition_variable>

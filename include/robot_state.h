@@ -1,13 +1,11 @@
 #ifndef ROBOT_STATE_H_
 #define ROBOT_STATE_H_
 
-#include <inttypes.h>
 #include <vector>
-#include <stdlib.h>
-#include <string.h>
+#include <cstring>
 #include <mutex>
 #include <condition_variable>
-#include <netinet/in.h>
+#include <netinet/in.h>  // 网络层接口协议
 
 namespace message_types {
 enum message_type {

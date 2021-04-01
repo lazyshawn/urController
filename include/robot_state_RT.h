@@ -1,11 +1,8 @@
 #ifndef ROBOT_STATE_RT_H_
 #define ROBOT_STATE_RT_H_
 
-#include <inttypes.h>
 #include <vector>
-#include <stdlib.h>
-#include<stdio.h>
-#include <string.h>
+#include <cstring>
 #include <mutex>
 #include <netinet/in.h>
 #include <condition_variable>

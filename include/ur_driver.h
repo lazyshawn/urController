@@ -6,9 +6,8 @@
 #ifndef UR_DRIVER_H_
 #define UR_DRIVER_H_
 
-#include "do_output.h"
 #include "ur_communication.h"
-#include "ur_realtime_communication.h"
+#include "ur_communication_RT.h"
 #include <condition_variable>
 #include <math.h>
 #include <mutex>

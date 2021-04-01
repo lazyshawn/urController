@@ -5,10 +5,9 @@
 #ifndef __CPP_MATRIX_H__
 #define __CPP_MATRIX_H__
 
-#include <math.h>
+#include <cmath>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstring>  // MFC封装的一个关于字符串处理的头文件(memcpy)
 
 //#define SNGLR_CHK // 特異値の確認
 

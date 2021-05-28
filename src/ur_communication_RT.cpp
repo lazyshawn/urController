@@ -86,7 +86,7 @@ void UrRealtimeCommunication::setSpeed(double q0, double q1, double q2,
   sprintf(cmd, "speedj([%1.5f, %1.5f, %1.5f, %1.5f, %1.5f, %1.5f], %f, 0.02)\n",
           q0, q1, q2, q3, q4, q5, acc);
   addCommandToQueue((std::string)(cmd));
-  if (q0 != 0. or q1 != 0. or q2 != 0. or q3 != 0. or q4 != 0. or q5 != 0.) {
+  if (q0 != 0. | q1 != 0. | q2 != 0. | q3 != 0. | q4 != 0. | q5 != 0.) {
     // If a joint speed is set, make sure we stop it again after some time if
     // the user doesn't
     safety_count_ = 0;
@@ -156,8 +156,8 @@ void UrRealtimeCommunication::run() {
           connected_ = true;
           printf("Realtime port: Reconnected\n");
         }
-      }
-    }
+      } // while(keepalive_ && !connected_)
+    } // if(keepalive_)
   }
   setSpeed(0., 0., 0., 0., 0., 0.);
   close(sockfd_);

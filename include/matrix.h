@@ -1,5 +1,7 @@
 /* *********************************************************
  * ==>> 矩阵模板
+ * ==>> Todos:
+ * 1. 操作符重载写入模板类，而非全局重载
  * *********************************************************/
 
 #ifndef __CPP_MATRIX_H__
@@ -12,6 +14,7 @@
 //#define SNGLR_CHK // 特異値の確認
 
 template <class T> class matrix;
+/* 操作符的全局重载 */
 template <class T> matrix<T> operator+(const matrix<T> &s1, const matrix<T> &s2);
 template <class T> matrix<T> operator-(const matrix<T> &s1, const matrix<T> &s2);
 template <class T> matrix<T> operator*(const matrix<T> &s1, const matrix<T> &s2);
@@ -29,9 +32,9 @@ template <class T> matrix<T> operator>(const matrix<T> &A, const matrix<T> &B);
 template <class T> class matrix {
 private:
   //---- 行数，列数の確認が無いため，pubulic から private に変更 ----//
-  // i行をaで割る
+  // i行をaで割る | 矩阵的第i行除以a
   void divi(int i, T a);
-  // i1行からi2行をa倍したものを引く
+  // i1行からi2行をa倍したものを引く | 第i1行减去i2行的a倍
   void subi(int i1, int i2, T a);
   // 互换i1行和i2行
   void swapi(int i1, int i2);
@@ -45,27 +48,28 @@ private:
   T &elm(int mi, int mj);
 
 public:
-  // デフォルト・コンストラクタ
+  // デフォルト・コンストラクタ | 默认构造函数
   matrix(void);
-  // コンストラクタ
+  // コンストラクタ | 构造函数：元素初始值
   matrix(int i, int j, const T *s = NULL);
-  //  行列sのコピーコンストラクタ
+  // 行列sのコピーコンストラクタ | 矩阵S的复制构造器
   matrix(const matrix<T> &s);
-  // デストラクタ
+  // デストラクタ | 析构函数: 在跳出程序（比如关闭文件、释放内存等）前释放资源
   ~matrix();
 
-  // 行列に-1をかけたものを返す
+  // 行列に-1をかけたものを返す | 返回乘以-1的矩阵
   matrix<T> operator-() const;
-  // 行列sと等しい時に真を返す
+  // 行列sと等しい時に真を返す | 等于矩阵s时返回真值
   int operator==(const matrix<T> &s) const;
-  // 行列sと等しくない時に真を返す
+  // 行列sと等しくない時に真を返す | 不等于矩阵s时返回真值
   int operator!=(const matrix<T> &s) const;
 
-  // 行列s1に行列s2を加えたものを返す
+  /* friend: 声明友元函数，可以访问该对象的私有成员 */
+  // 行列s1に行列s2を加えたものを返す | 返回对矩阵s1加上矩阵s2的矩阵
   friend matrix<T> operator+<>(const matrix<T> &s1, const matrix<T> &s2);
-  // 行列s1から行列s2を引いたものを返す
+  // 行列s1から行列s2を引いたものを返す | 返回从矩阵s1减去矩阵s2的矩阵
   friend matrix<T>(::operator-<>)(const matrix<T> &s1, const matrix<T> &s2);
-  // 行列s1と行列s2との積を返す
+  // 行列s1と行列s2との積を返す | 返回矩阵s1和矩阵s2的乘积
   friend matrix<T> operator*<>(const matrix<T> &s1, const matrix<T> &s2);
   // 単位行列のa倍と行列sをかけ，その行列を返す (行列sをa倍したものを返す)
   friend matrix<T> operator*<>(T a, const matrix<T> &s);
@@ -105,42 +109,44 @@ public:
   // 行列をaで割る
   matrix<T> &operator/=(T a);
 
-  // 行列のトレースを求める
+  // 行列のトレースを求める | 返回矩阵的迹
   T tr(void) const;
-  // 行列式を求める
+  // 行列式を求める | 返回矩阵的行列式
   T det(void) const;
-  // rankを求める
+  // rankを求める | 返回矩阵的秩
   int rank(void) const;
 
-  // 転置行列を求める
+  // 転置行列を求める | 矩阵的转置
   matrix<T> t(void) const;
-  // 逆行列を求める (部分pivot，Gauss-Jordan法を使用)
+  // 逆行列を求める (部分pivot，Gauss-Jordan法を使用) | 矩阵的逆
   matrix<T> inverse(void) const;
   // 累乗法により実対称行列の固有ベクトルを求める
   matrix<T> powEig(void) const;
   // 累乗法により実対称行列の固有値と固有ベクトルを求める
   matrix<T> powEig(matrix<T> &c) const;
 
-  // 2次元行列の大きさを知る
+  // 2次元行列の大きさを知る | 求矩阵的大小
   void msize(int *i1, int *i2) const;
-  // 行列の要素にアクセス (先頭要素は (1,1))
+  // 行列の要素にアクセス (先頭要素は (1,1)) | 访问矩阵元素(第一元素是(1,1))
   T &operator()(int mi, int mj);
-  // 行列sのある部分小行列として得る (先頭要素は (1,1))
+  // 行列sのある部分小行列として得る (先頭要素は (1,1)) | 矩阵切片
   matrix<T> part(int mi, int mj, int ni, int nj) const;
   // 行列のある部分に小行列sを代入する (先頭要素は (1,1))
+  // 把小的矩阵s替换原矩阵的部分元素
   void pasg(int mi, int mj, const matrix<T> &s);
   // 行列sのある部分を小行列として得る (先頭要素は (1,1))
+  // 计算矩阵大小，以matrix(int)形式返回
   matrix<int> size(void) const;
   // 行列が正則(0)か特異(1)か判定する
   int snglr(T limit = 0.01) const;
-  // ユークリッドノルムを返す (N x 1 行列のみ有効)
+  // ユークリッドノルムを返す (N x 1 行列のみ有効) | 返回欧几里德范数
   double norm(void) const;
-  // 正規化したベクトルを返す (N x 1 行列のみ有効)
+  // 正規化したベクトルを返す (N x 1 行列のみ有効) | 返回归一化向量
   matrix<T> normal(void) const;
-  // キャスト (配列の長さに気を付けること)
+  // キャスト (配列の長さに気を付けること) | 转换元素类型
   matrix<double> cast_d(void) const;
   matrix<int> cast_i(void) const;
-  // 行列を標準出力に出力する
+  // 行列を標準出力に出力する | 将矩阵输出到标准输出
   void print(const char *style = " %12.4f", const char *msg = "\n") const;
 
 protected:
@@ -279,8 +285,7 @@ matrix<T> operator*(const matrix<T> &s1, const matrix<T> &s2) {
 // 単位行列のa倍と行列sをかけ，その行列を返す (行列sをa倍したものを返す)
 template <class T> matrix<T> operator*(T a, const matrix<T> &s) {
   if (!s.ii || !s.jj)
-    s.err("operator * (T a, const matrix<T> &s), (%d, %d), \n", s.ii, s.jj, 0,
-          0);
+    s.err("operator * (T a, const matrix<T> &s), (%d, %d), \n", s.ii, s.jj, 0, 0);
   matrix<T> d(s);
 
   for (int i = 0; i < s.ii * s.jj; i++)
@@ -292,8 +297,7 @@ template <class T> matrix<T> operator*(T a, const matrix<T> &s) {
 // 行列sと単位行列のa倍をかけ，その行列を返す (行列sをa倍したものを返す)
 template <class T> matrix<T> operator*(const matrix<T> &s, T a) {
   if (!s.ii || !s.jj)
-    s.err("operator * (const matrix<T> &s, T a), (%d, %d), \n", s.ii, s.jj, 0,
-          0);
+    s.err("operator * (const matrix<T> &s, T a), (%d, %d), \n", s.ii, s.jj, 0, 0);
 
   matrix<T> d(s);
 
@@ -700,6 +704,7 @@ template <class T> matrix<T> matrix<T>::powEig(matrix<T> &c) const {
 }
 
 // 累乗法により実対称行列の固有ベクトルを求める
+// 通过幂法计算实际对称矩阵的特征向量
 template <class T> matrix<T> matrix<T>::powEig(void) const {
   if (!ii || ii != jj)
     err("powEig (%d, %d)\n", ii, jj, 0, 0);
@@ -779,7 +784,7 @@ template <class T> matrix<int> matrix<T>::size(void) const {
 }
 
 // 行列s1の右に行列s2をつないだ行列を返す (先頭要素は (1,1))
-//向后按行连接矩阵
+// 向右按行连接矩阵
 template <class T>
 matrix<T> operator|(const matrix<T> &s1, const matrix<T> &s2) {
   if (!s1.ii || !s1.jj || s1.ii != s2.ii)
@@ -793,7 +798,7 @@ matrix<T> operator|(const matrix<T> &s1, const matrix<T> &s2) {
 }
 
 // 行列s1の下に行列s2をつないだ行列を返す
-//向下按列连接矩阵
+// 向下按列连接矩阵
 template <class T>
 matrix<T> operator||(const matrix<T> &s1, const matrix<T> &s2) {
   if (!s1.ii || !s1.jj || s1.jj != s2.jj)
@@ -807,6 +812,7 @@ matrix<T> operator||(const matrix<T> &s1, const matrix<T> &s2) {
 }
 
 // s1とs2との内積を返す (N x 1 行列のみ有効)
+// 返回s1和s2的外积
 template <class T> T operator&(const matrix<T> &s1, const matrix<T> &s2) {
   if (s1.ii != s2.ii || !s1.ii || s2.jj != 1 || s1.jj != 1)
     s1.err("operator & (matrix<T>, matrix<T>)(%d, %d), (%d, %d)\n", s1.ii,
@@ -894,6 +900,7 @@ template <class T> matrix<T> operator>(const matrix<T> &A, const matrix<T> &B) {
 }
 
 // 行列の値を配列に代入 (配列の長さに気を付けること)
+// 将矩阵代入数组（注意数组的长度）
 template <class T> void operator<<=(T *data, const matrix<T> &s) {
   if (!s.ii || !s.jj)
     s.err("operator <<= (T *data, const matrix<T> &s), (%d, %d), \n", s.ii,
@@ -920,9 +927,7 @@ template <class T> int matrix<T>::snglr(T limit) const {
 }
 
 // ユークリッドノルムを返す (N x 1 行列のみ有効)
-template <class T>
-double matrix<T>::norm(void) const //自作
-{
+template <class T> double matrix<T>::norm(void) const {
   if (!ii || jj != 1)
     err("norm (%d, %d)\n", ii, jj, 0, 0);
 
@@ -949,10 +954,9 @@ template <class T> matrix<T> matrix<T>::normal(void) const {
   return d;
 }
 
-// キャスト (配列の長さに気を付けること)
+// キャスト (配列の長さに気を付けること) //自作
 template <class T>
-matrix<double> matrix<T>::cast_d(void) const //自作
-{
+matrix<double> matrix<T>::cast_d(void) const {
   if (!ii || !jj)
     err("cast_d (%d, %d)\n", ii, jj, 0, 0);
 
@@ -976,21 +980,22 @@ matrix<int> matrix<T>::cast_i(void) const //自作
   return d;
 }
 
+/* matrix的索引从1开始 */
 typedef matrix<double> MATRIX_D;
 typedef matrix<int> MATRIX_I;
 
-extern MATRIX_D Rot(int, double, double);
-extern MATRIX_D RotD(int, double, double);
-extern MATRIX_D Skew(double, double, double);
+MATRIX_D Rot(int, double, double);
+MATRIX_D RotD(int, double, double);
+MATRIX_D Skew(double, double, double);
 
-extern MATRIX_D MatD31(double, double, double);
-extern MATRIX_D MatD33(double, double, double, double, double, double, double,
-                       double, double);
-extern MATRIX_D MatD61(double, double, double, double, double, double);
+MATRIX_D MatD31(double, double, double);
+MATRIX_D MatD33(double, double, double, double, double, double, double,
+                double, double);
+MATRIX_D MatD61(double, double, double, double, double, double);
 
-extern MATRIX_D Zeros(int, int);
-extern MATRIX_D Ones(int, int);
-extern MATRIX_D Eye(int);
+MATRIX_D Zeros(int, int);
+MATRIX_D Ones(int, int);
+MATRIX_D Eye(int);
 
 /* extern int CalcEigenValue(MATRIX_D &, MATRIX_D &, MATRIX_D &); */
 

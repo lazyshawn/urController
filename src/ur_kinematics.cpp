@@ -40,24 +40,31 @@ MATRIX_D RotMat2EulerAngle(MATRIX_D rotMat) {
   return EulerAngle;
 }
 
+
 MATRIX_D CalcB0(double alpha, double beta, double gamma) {
 
-  MATRIX_D B0 =
-      MatD33(cos(beta) * cos(gamma), -sin(gamma), 0.0, cos(beta) * sin(gamma),
-             cos(gamma), 0.0, -sin(beta), 0.0, 1.0);
+  MATRIX_D B0 = MatD33(cos(beta) * cos(gamma), -sin(gamma), 0.0, 
+                       cos(beta) * sin(gamma), cos(gamma), 0.0,
+                       -sin(beta), 0.0, 1.0);
   return B0;
 }
+
+
+/* 
+ * @brief: 传统DH坐标求解机械臂运动学
+ * @param: jnt-关节角正(余)弦值; rx_h-旋转矩阵;
+ * @return: 末端位姿向量(6x1)
+ */
 MATRIX_D ur_kinematics(JOINTLINK *jnt, MATRIX_D &rx_h) {
   MATRIX_D jnt1_p = MatD31(0, 0, UR_ARM_OFFSET_D1), jnt2_p = MatD31(0, 0, 0),
            jnt3_p = MatD31(0, 0, 0), jnt4_p = MatD31(0, 0, 0),
            jnt5_p = MatD31(0, 0, 0), hnd_p = MatD31(0, 0, 0);
   jnt2_p = jnt1_p;
-  MATRIX_D AxisAngle = MatD31(0.0, 0.0, 0.0);
+  // MATRIX_D AxisAngle = MatD31(0.0, 0.0, 0.0);
   MATRIX_D EulerAngle = MatD31(0.0, 0.0, 0.0);
 
-  MATRIX_D rx_s =
-      (Rot(2, jnt->c[0], jnt->s[0]) * Rot(0, cos(M_PI / 2), sin(M_PI / 2)) *
-       Rot(2, jnt->c[1], jnt->s[1]));
+  MATRIX_D rx_s = (Rot(2, jnt->c[0], jnt->s[0]) *
+      Rot(0, cos(M_PI / 2), sin(M_PI / 2)) * Rot(2, jnt->c[1], jnt->s[1]));
   jnt3_p = jnt2_p + rx_s * MatD31(-UR_ARM_OFFSET_A2, 0, 0);
   MATRIX_D rx_3 = rx_s * Rot(2, jnt->c[2], jnt->s[2]);
   jnt4_p = jnt3_p + rx_3 * MatD31(-UR_ARM_OFFSET_A3, 0, UR_ARM_OFFSET_D4);
@@ -65,23 +72,30 @@ MATRIX_D ur_kinematics(JOINTLINK *jnt, MATRIX_D &rx_h) {
   jnt5_p = jnt4_p + rx_4 * MatD31(0, -UR_ARM_OFFSET_D5, 0);
   MATRIX_D rx_5 = rx_4 * Rot(0, cos(M_PI / 2), sin(M_PI / 2)) *
                   Rot(2, jnt->c[4], jnt->s[4]);
+  // 末端位置矩阵(3x1)
   hnd_p = jnt5_p + rx_5 * MatD31(0, UR_ARM_OFFSET_D6, 0);
+  // 末端姿态矩阵(3x3)
   rx_h = rx_5 * Rot(0, cos(-M_PI / 2), sin(-M_PI / 2)) *
          Rot(2, jnt->c[5], jnt->s[5]);
-  AxisAngle = RotMat2AxisAngle(rx_h);
+  // AxisAngle = RotMat2AxisAngle(rx_h);
   EulerAngle = RotMat2EulerAngle(rx_h);
 
   return ((hnd_p || EulerAngle));
 }
 
+/* 
+ * @brief: 计算从关节空间到笛卡尔空间的雅克比矩阵，及其逆矩阵、转置矩阵
+ * @param: jnt; jcbn-雅克比矩阵结构体指针;
+ * @return: 雅克比矩阵
+ */
 MATRIX_D ur_jacobian(JOINTLINK *jnt, JACOBIAN *jcbn) {
   int flag;
+  // jnti_axis: 关节i的方向
   MATRIX_D jnt1_p = MatD31(0.0, 0.0, UR_ARM_OFFSET_D1);
   MATRIX_D jnt1_axis = MatD31(0.0, 0.0, 1.0);
 
   MATRIX_D rx_s = Rot(2, jnt->c[0], jnt->s[0]) *
-                  Rot(0, cos(M_PI / 2), sin(M_PI / 2)) *
-                  Rot(2, jnt->c[1], jnt->s[1]);
+      Rot(0, cos(M_PI / 2), sin(M_PI / 2)) * Rot(2, jnt->c[1], jnt->s[1]);
   MATRIX_D jnt2_p = jnt1_p;
   MATRIX_D jnt2_axis = MatD31(rx_s(1, 3), rx_s(2, 3), rx_s(3, 3));
   MATRIX_D jnt3_p = jnt2_p + rx_s * MatD31(-UR_ARM_OFFSET_A2, 0.0, 0.0);
@@ -118,7 +132,8 @@ MATRIX_D ur_jacobian(JOINTLINK *jnt, JACOBIAN *jcbn) {
     (double *)jcbn->invJcb <<= ijcb;
   return jcb;
 }
-extern int CalcInverse(MATRIX_D &jcb, MATRIX_D &ijcb) {
+
+int CalcInverse(MATRIX_D &jcb, MATRIX_D &ijcb) {
   MATRIX_D mat(6, 6);
   mat = jcb;
   if (mat.snglr())
@@ -140,7 +155,7 @@ MATRIX_D AxisAnglePi(MATRIX_D BMat) {
 
   if ((b12 > 0) & (b13 > 0) & (b23 > 0)) {
     return (MatD31(sqrt(b11), sqrt(b22), sqrt(b33)));
-  } else if (abs(b12 * b13 * b23) > 0.0001) { // no one is zero
+  } else if (fabs(b12 * b13 * b23) > 0.0001) { // no one is zero
     if (b12 > 0) {
       return (MatD31(sqrt(b11), sqrt(b22), -sqrt(b33)));
     } else if (b13 > 0) {
@@ -148,30 +163,30 @@ MATRIX_D AxisAnglePi(MATRIX_D BMat) {
     } else {
       return (MatD31(-sqrt(b11), sqrt(b22), sqrt(b33)));
     }
-  } else if ((abs(b12) > 0.0001) || (abs(b13) > 0.0001) ||
-             (abs(b23) > 0.0001)) { // one ni is zero
-    if (abs(b12) > 0.0001) {
+  } else if ((fabs(b12) > 0.0001) || (fabs(b13) > 0.0001) ||
+             (fabs(b23) > 0.0001)) { // one ni is zero
+    if (fabs(b12) > 0.0001) {
       if (b12 > 0)
         return (MatD31(sqrt(b11), sqrt(b22), 0.0));
       else
         return (MatD31(sqrt(b11), -sqrt(b22), 0.0));
     }
-    if (abs(b13) > 0.0001) {
+    if (fabs(b13) > 0.0001) {
       if (b13 > 0)
         return (MatD31(sqrt(b11), 0.0, sqrt(b33)));
       else
         return (MatD31(sqrt(b11), 0.0, -sqrt(b33)));
     }
-    if (abs(b23) > 0.0001) {
+    if (fabs(b23) > 0.0001) {
       if (b23 > 0)
         return (MatD31(0.0, sqrt(b22), sqrt(b33)));
       else
         return (MatD31(0.0, sqrt(b22), -sqrt(b33)));
     }
   } else { // two n_i are zero
-    if (abs(b11) > 0.0001) {
+    if (fabs(b11) > 0.0001) {
       return (MatD31(sqrt(b11), 0.0, 0.0));
-    } else if (abs(b22) > 0.0001) {
+    } else if (fabs(b22) > 0.0001) {
       return (MatD31(0.0, sqrt(b22), 0.0));
     } else {
       return (MatD31(0.0, 0.0, sqrt(b33)));
@@ -181,7 +196,6 @@ MATRIX_D AxisAnglePi(MATRIX_D BMat) {
 
 MATRIX_D RotMat2AxisAngle(MATRIX_D rotMat) {
   double angle, cos_angle;
-
   MATRIX_D temp = Zeros(3, 3);
   MATRIX_D vN = MatD31(0, 0, 0);
 
@@ -190,10 +204,9 @@ MATRIX_D RotMat2AxisAngle(MATRIX_D rotMat) {
 
   if (cos_angle < -0.999) { // condition that angle = pi
     MATRIX_D BMat = 0.5 * (rotMat + Eye(3));
-
     return (AxisAnglePi(BMat));
-  } else if (cos_angle >
-             0.999) { // condition that angle = 0, axis is undetermined.
+  } else if (cos_angle > 0.999) {
+    // condition that angle = 0, axis is undetermined.
     return (Zeros(3, 1));
   } else {
     temp = 1 / (2 * sin(angle)) * (rotMat - rotMat.t());

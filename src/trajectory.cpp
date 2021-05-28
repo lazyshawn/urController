@@ -123,7 +123,7 @@ double CalcSinTrajeVelo(double orig, double goal, double freq, double time) {
 }
 
 
-/* 位置伺服: 计算轨迹插补点(笛卡尔空间) */
+/* 角度伺服: 计算轨迹插补点(关节角空间) */
 // curtime: 当前时间; path: 轨迹; theta: 目标角度; dtheta: 指定角速度.
 void CalcJntRefPath(double curtime, PATH *path, THETA *theta, THETA *dtheta) {
   double *orig, *goal, *ref, *ref_v;
@@ -167,16 +167,15 @@ void CalcJntRefPath(double curtime, PATH *path, THETA *theta, THETA *dtheta) {
   }
 }
 
-/* 角度伺服: 计算轨迹插补点(关节角空间) */
+/* 位置伺服: 计算轨迹插补点(笛卡尔空间) */
 // Path planning
 void CalcPosRefPath(double curtime, PATH *path, POS *refpos) {
-  int i;
   double *orig, *goal, *ref;
 
   orig = path->Orig;
   goal = path->Goal;
   ref = (double *)refpos;
-  for (i = 0; i < 6; i++) {
+  for (int i = 0; i < 6; i++) {
     switch (path->Mode) {
     case JNT_PATH_5JI:
     case JNT_PATH_5JI_FF:
@@ -198,9 +197,8 @@ void CalcPosRefPath(double curtime, PATH *path, POS *refpos) {
   }
 }
 
-/* 计算末端tcp位置 */
+/* 计算Mark位置 */
 void CalcPointpos(double curtime, PATH *path, POSITION *refmarkpos) {
-  int i;
   double *ref_point_pos;
   double start[18] = {
       0.856956, -0.0214573, 0.0256758, 0.814638, -0.0191454, 0.022805,
@@ -277,7 +275,6 @@ MatrixXf ComputeGripperToObjectJacobian(MatrixXf &GripperToPoint,
   RadiusVetor = Radius;
 
   // Get all the data we need for a given gripper
-
   for (int node_ind = 0; node_ind < num_nodes; node_ind++) {
     int gripper_ind = 0;
     float translation_deformability = 45;
@@ -306,8 +303,10 @@ MatrixXf ComputeGripperToObjectJacobian(MatrixXf &GripperToPoint,
     J.block<3, 3>(node_ind * 3, 3) =
         exp(-rotation_deformability * dist_to_gripper) * J_rot;
 
-    // block（p,
-    // q）可理解为一个p行q列的子矩阵，该定义表示从原矩阵中第(i,j)开始，获取一个p行q列的子矩阵，返回该子矩阵组成的临时矩阵对象，原矩阵的元素不变
+    // block（p, q）
+    // 可理解为一个p行q列的子矩阵
+    // 该定义表示从原矩阵中第(i,j)开始，获取一个p行q列的子矩阵
+    // 返回该子矩阵组成的临时矩阵对象，原矩阵的元素不变
   }
   return J;
 }

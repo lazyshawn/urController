@@ -73,7 +73,7 @@ typedef struct {
 } JACOBIAN;
 
 typedef struct {
-  int PosOriServoFlag;
+  int PosOriServoFlag;             // 位姿伺服标志
   int SamplingFreq;
   double SamplingTime;
   double Time;                     // 当前时间

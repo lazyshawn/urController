@@ -34,6 +34,8 @@ int listen (int sockfd, int n);
 
 ## § Reference
 1. [Socket\_Linux（Linux下C++ socket）][1]
+1. [简单web服务器的实现（C++）][2]
 
 [1]:https://blog.csdn.net/qq_27855393/article/details/108294588
+[2]:https://blog.csdn.net/qq_22642239/article/details/106463313
 

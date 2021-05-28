@@ -2,8 +2,8 @@
 #include "../include/ur_driver.h"
 
 /* 构造函数: 申明机UR类 */
-// rt_msg_cond: ; msg_cond: ; host: 主机IP; reverse_port: 通信端口;
-// servoj_time: ; safety_count_max: ; max_time_step: ;
+// rt_msg_cond, msg_cond: 条件变量; host: 主机IP; reverse_port: 通信端口;
+// servoj_time: 角度伺服指令的完成时间; safety_count_max: ; max_time_step: ;
 // min_payload: ; max_payload: .
 UrDriver::UrDriver(std::condition_variable &rt_msg_cond,
                    std::condition_variable &msg_cond, std::string host,
@@ -85,14 +85,17 @@ bool UrDriver::doTraj(std::vector<double> inp_timestamps,
   executing_traj_ = true;
   t = t0 = std::chrono::high_resolution_clock::now();
 
+  // inp_timestamps[n-1] >= t-t0; 确保还在给定的时间段内。
   while ((inp_timestamps[inp_timestamps.size() - 1] >=
           std::chrono::duration_cast<std::chrono::duration<double>>(t - t0)
               .count()) && executing_traj_) {
+    // 找到下一时间戳
     while (inp_timestamps[j] <=
            std::chrono::duration_cast<std::chrono::duration<double>>(t - t0)
            .count() && j < inp_timestamps.size() - 1) {
       j++;
-    }
+    } // while(inp_timestamps[j])
+    // 关节角的三次多项式轨迹插补
     positions = UrDriver::interp_cubic(
         std::chrono::duration_cast<std::chrono::duration<double>>(t - t0)
         .count() - inp_timestamps[j - 1],
@@ -100,11 +103,12 @@ bool UrDriver::doTraj(std::vector<double> inp_timestamps,
         inp_positions[j], inp_velocities[j - 1], inp_velocities[j]);
     UrDriver::servoj(positions);
 
-    // oversample with 4 * sample_time
+    // Oversample with 4 * sample_time(s)
     std::this_thread::sleep_for(
         std::chrono::milliseconds((int)((servoj_time_ * 1000) / 4.)));
     t = std::chrono::high_resolution_clock::now();
-  }
+  } // while(inp_timestamps[size()-1])
+
   executing_traj_ = false;
   // Signal robot to stop driverProg()
   UrDriver::closeServo(positions);
@@ -328,20 +332,12 @@ bool UrDriver::setPayload(double m) {
 }
 
 void UrDriver::setMinPayload(double m) {
-  if (m > 0) {
-    minimum_payload_ = m;
-  } else {
-    minimum_payload_ = 0;
-  }
+  minimum_payload_ = m>0 ? m : 0;
 }
 
 void UrDriver::setMaxPayload(double m) { maximum_payload_ = m; }
 
 void UrDriver::setServojTime(double t) {
-  if (t > 0.008) {
-    servoj_time_ = t;
-  } else {
-    servoj_time_ = 0.008;
-  }
+  servoj_time_ = t>0.008 ? t : 0.008;
 }
 

@@ -22,11 +22,12 @@ pthread_mutex_t servo_inter_mutex = PTHREAD_MUTEX_INITIALIZER;
 extern SVO pSVO;
 extern pthread_mutex_t mymutex;
 
+// UR通信的条件变量
 std::condition_variable rt_ur_msg_cond, ur_msg_cond;
 // UR的IP地址(静态)
-std::string host_name = "10.249.181.201";
-
-UrDriver *testUr;
+std::string ur_ip = "10.249.181.201";
+// UR的通信端口
+unsigned int ur_post = 50007;
 
 int main(int argc, char** argv) {
   // 线程标识符
@@ -37,18 +38,17 @@ int main(int argc, char** argv) {
   struct sched_param param;
   // 一个伺服周期内的纳秒数
   int interval = 8000000; /* 8 ms*/
-  int loop_flag = 0;
   shm_servo_inter.status_control = INIT_C;
 
   /* connect to ur robot */
-  std::cout << "Connecting to " << host_name << std::endl;
-  UrDriver urRobot(rt_ur_msg_cond, ur_msg_cond, host_name, 50007, 0.016, 12, 0.08, 0);
+  std::cout << "Connecting to " << ur_ip << std::endl;
+  UrDriver urRobot(rt_ur_msg_cond, ur_msg_cond, ur_ip, ur_post);
 
 #ifndef ROBOT_OFFLINE
   urRobot.start();
   urRobot.setServojTime(0.008);
-  // for test
-  testUr = &urRobot;
+  sleep(1);
+  urRobot.uploadProg();
 #endif
 
   /* Declare ourself as a real time task */
@@ -82,28 +82,14 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  /* reset save buffer */
+  /* Get ready */
   SaveDataReset();
+  ResetTime();
 
-#ifndef ROBOT_OFFLINE
-  urRobot.uploadProg();
-#endif
-  while (1) {
-    if (shm_servo_inter.status_control == EXIT_C) {
-      printf("Program end\n");
-      break;
-    }
-
+  while (shm_servo_inter.status_control == INIT_C) {
     /* wait until next shot */
     // 休眠到下个周期开始
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
-
-    /* do the stuff */
-    /* reset */
-    if (loop_flag == 0) {
-      ResetTime();
-      loop_flag = 1;
-    }
 
     /* 伺服线程 */
     servo_function(&urRobot);
@@ -118,15 +104,16 @@ int main(int argc, char** argv) {
       t.tv_sec++;
     }
   } // while (1)
+  printf("Program end\n");
 
   /* 结束子线程 */
   if (pthread_join(interface_thread, NULL)) {
     perror("pthread_join at interface_thread\n");
     exit(1);
   }
-
   if (pthread_join(display_thread, NULL)) {
     perror("pthread_join at displya_thread\n");
+    exit(1);
   }
 
   // 保存实验数据

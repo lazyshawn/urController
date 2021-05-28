@@ -56,11 +56,12 @@ void servo_function(UrDriver *ur) {
   servoP.Time = curtime;
 
   /* Get target information */
+  // 从其他线程/进程获取目标信息
   // memcpy(coordinate, shm_addr, 72);
-  for (i = 0; i < 18; i++) {
-    servoP.markpos.t[i] = coordinate[i];
-    Curpos(i, 0) = coordinate[i];
-  }
+  // for (i = 0; i < 18; i++) {
+  //   servoP.markpos.t[i] = coordinate[i];
+  //   Curpos(i, 0) = coordinate[i];
+  // }
 
   /* Obtain the current state of ur */
 #ifndef ROBOT_OFFLINE
@@ -87,10 +88,11 @@ void servo_function(UrDriver *ur) {
   // 计算点在执行器坐标系下的半径
   Radius = ComputeRadiusVector(coordinate, 18, P, 6);
 
-  for (i = 0; i < 6; i++) servoP.distogripper.t[i] = GripperToPoint(0, i);
-  // std::cout<<computeGrippersToDeformableObjectJacobian(N)<<std::endl;
-  // The start position of the tcp.
-  for (i = 0; i < 6; i++) servoP.CurPos.t[i] = pos(i+1, 1);
+  for (i = 0; i < 6; i++) {
+    servoP.distogripper.t[i] = GripperToPoint(0, i);
+    // The start position of the tcp during next path
+    servoP.CurPos.t[i] = pos(i+1, 1);
+  }
 
   /* Pop path info */
   // ************* should be noticed *************
@@ -112,7 +114,6 @@ void servo_function(UrDriver *ur) {
   if (servoP.NewPathFlag == ON) {
     for (i = 0; i < 6; i++) {
       servoP.Path.Orig[i] = servoP.CurTheta.t[i];
-      std::cout << "=> Set orig [" << i << "] as: "<< servoP.Path.Orig[i] << std::endl;
     }
     servoP.NewPathFlag = OFF;
   }
@@ -123,17 +124,19 @@ void servo_function(UrDriver *ur) {
                    &servoP.RefDTheta);
   // 末端位姿的伺服控制
   if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON) {
+    // 末端tcp的期望位置
     CalcPosRefPath(GetOffsetTime(), &servoP.Path, &servoP.RefPos);
-    CalcPointpos(GetOffsetTime(), &servoP.Path, &servoP.refmarkpos);
-
-    for (i = 0; i < 18; i++) {
-      Refpos(i, 0) = servoP.refmarkpos.t[i];
-    }
     for (i = 0; i < 6; i++) {
       ref_pos(i+1, 1) = servoP.RefPos.t[i];
     }
+    // Mark的期望位置
+    CalcPointpos(GetOffsetTime(), &servoP.Path, &servoP.refmarkpos);
+    for (i = 0; i < 18; i++) {
+      Refpos(i, 0) = servoP.refmarkpos.t[i];
+    }
 
     B0 = CalcB0(pos(4, 1), pos(5, 1), pos(6, 1));
+    // 很像改变Jacobian参考系的矩阵
     PosErrorTrn = ((Eye(3) | Zeros(3, 3)) || (Zeros(3, 3) | B0));
     jcb = ur_jacobian(&servoP.jnk, jcbn);
     /*shape_servo*/
@@ -145,7 +148,7 @@ void servo_function(UrDriver *ur) {
     // std::cout << jacobiE << std::endl;
     MatrixXf j_def(18, 6);
     j_def = ComputeGripperToObjectJacobian(GripperToPoint, Radius);
-    // std::cout << j_def << std::endl;
+    // Mark运动与机械臂运动之间的Jacobian
     MatrixXf J(18, 6);
     J = j_def * jacobiE;
     // std::cout << J << std::endl;

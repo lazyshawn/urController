@@ -1,25 +1,53 @@
+/* 
+ * Check doc/ur_kinematics/ur.md for more details.
+ */
 
 #ifndef UR_KINEMATICS_H
 #define UR_KINEMATICS_H
 
 #include "common.h"
 #include "matrix.h"
+#include <vector>
 
-#define UR_ARM_OFFSET_D1 0.089459
-#define UR_ARM_OFFSET_A2 0.42500
-#define UR_ARM_OFFSET_A3 0.39225
-#define UR_ARM_OFFSET_D4 0.10915
-#define UR_ARM_OFFSET_D5 0.09465
-#define UR_ARM_OFFSET_D6 0.2323
-//#define UR_ARM_OFFSET_D6 0.0823
+// Modified DH parameters for UR5
+#define DH_D1 89.459
+#define DH_A3 425.00
+#define DH_A4 392.25
+#define DH_D4 109.15
+#define DH_D5 94.65
+#define DH_D6 82.3 
 
-MATRIX_D ur_kinematics(JOINTLINK *jnk, MATRIX_D &p);
-MATRIX_D RotMat2AxisAngle(MATRIX_D rotMat);
-MATRIX_D ur_InverseKinematics(MATRIX_D hand_p, MATRIX_D rotMat);
+/* 
+ * @brief: 更新各关节角的正余弦值;
+ * @param: 关节角向量;
+ * @return: ;
+ */
+int calcJnt(std::vector<double> q);
+
+/* 
+ * @brief: M-DH求解机械臂运动学
+ * @param: 旋转矩阵(ori_hnd);
+ * @return: 末端位姿向量(6x1)
+ */
+MATRIX_D ur_kinematics(MATRIX_D &ori_hnd);
+
+/* 
+ * @brief: 计算从关节空间到笛卡尔空间的雅克比矩阵，及其逆矩阵、转置矩阵
+ * @param: 雅克比矩阵结构体指针(jcbn);
+ * @return: 雅克比矩阵
+ */
+MATRIX_D ur_jacobian(JACOBIAN *jcbn);
+
+/* 
+ * @brief: 检验矩阵奇异性，并计算矩阵的逆;
+ * @param: 原矩阵(jcb); 逆矩阵(ijcb);
+ * @return: 矩阵奇异(-1) | 无异常(0);
+ */
+int calcInverse(MATRIX_D &jcb, MATRIX_D &ijcb);
+
 MATRIX_D RPY2RotMat(double alpha, double beta, double gamma);
+MATRIX_D RotMat2AxisAngle(MATRIX_D rotMat);
 MATRIX_D RotMat2EulerAngle(MATRIX_D rotMat);
-MATRIX_D CalcB0(double alpha, double beta, double gamma);
-MATRIX_D ur_jacobian(JOINTLINK *jnk, JACOBIAN *jcbn);
-int CalcInverse(MATRIX_D &jcb, MATRIX_D &ijcb);
+MATRIX_D ur_InverseKinematics(MATRIX_D hand_p, MATRIX_D rotMat);
 #endif
 

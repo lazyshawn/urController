@@ -34,7 +34,7 @@ MATRIX_D Rot(int xyz, double cc, double ss) {
   return m;
 }
 
-/* 不懂 */
+/* Double 类型 */
 MATRIX_D RotD(int xyz, double cc, double ss) {
   double aij[3][3];
   memset(aij, 0, sizeof(double) * 9);

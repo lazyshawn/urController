@@ -71,8 +71,8 @@ void servo_function(UrDriver *ur) {
   // copy the UR state
   for (i = 0; i < 6; i++) {
     servoP.CurTheta.t[i] = jnt_angle[i];
-    servoP.jnk.c[i] = cos(jnt_angle[i]);
-    servoP.jnk.s[i] = sin(jnt_angle[i]);
+    // 计算各关节角的正余弦值
+    calcJnt(jnt_angle);
     // ensure the robot do not move after setup
     servoP.RefTheta.t[i] = jnt_angle[i]; 
     servoP.CurDTheta.t[i] = jnt_angleD[i];
@@ -80,7 +80,7 @@ void servo_function(UrDriver *ur) {
 
   /* Update the kinematics calculation*/
   // 返回末端夹持点的位置坐标
-  pos = ur_kinematics(&servoP.jnk, hnd_ori);
+  pos = ur_kinematics(hnd_ori);
   for (i = 0; i < 6; i++) P[i] = pos(i+1, 1);
 
   // 计算tcp到末端标记点的距离
@@ -124,71 +124,20 @@ void servo_function(UrDriver *ur) {
                    &servoP.RefDTheta);
   // 末端位姿的伺服控制
   if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON) {
-    // 末端tcp的期望位置
-    CalcPosRefPath(GetOffsetTime(), &servoP.Path, &servoP.RefPos);
-    for (i = 0; i < 6; i++) {
-      ref_pos(i+1, 1) = servoP.RefPos.t[i];
-    }
-    // Mark的期望位置
-    CalcPointpos(GetOffsetTime(), &servoP.Path, &servoP.refmarkpos);
-    for (i = 0; i < 18; i++) {
-      Refpos(i, 0) = servoP.refmarkpos.t[i];
+    double offsetTime = GetOffsetTime();
+    MATRIX_D dq = MatD61(0,0,0,0,0,0);
+    if (servoP.Path.Freq * offsetTime <= 1) {
+      jcb = ur_jacobian(jcbn);
+      MATRIX_D dhnd = MatD61(1,0,0,0,0,0);
+      MATRIX_D ijcb(6,6, (double *)jcbn->invJcb);
+      dq = ijcb*dhnd;
     }
 
-    B0 = CalcB0(pos(4, 1), pos(5, 1), pos(6, 1));
-    // 很像改变Jacobian参考系的矩阵
-    PosErrorTrn = ((Eye(3) | Zeros(3, 3)) || (Zeros(3, 3) | B0));
-    jcb = ur_jacobian(&servoP.jnk, jcbn);
-    /*shape_servo*/
-    for (int i = 0; i < 6; i++) {
-      for (int j = 0; j < 6; j++) {
-        jacobiE(i, j) = jcb(i+1, j+1);
-      }
+    double delQ[6];
+    delQ <<= dq;
+    for (int i=0; i<6; ++i) {
+      servoP.RefTheta.t[i] = servoP.CurTheta.t[i] + delQ[i];
     }
-    // std::cout << jacobiE << std::endl;
-    MatrixXf j_def(18, 6);
-    j_def = ComputeGripperToObjectJacobian(GripperToPoint, Radius);
-    // Mark运动与机械臂运动之间的Jacobian
-    MatrixXf J(18, 6);
-    J = j_def * jacobiE;
-    // std::cout << J << std::endl;
-    JacobiSVD<MatrixXf> svd(J, ComputeThinU | ComputeThinV);
-    float pinvtoler = 1.e-6; // choose your tolerance wisely
-    MatrixXf singularValues_inv = svd.singularValues();
-    for (long i = 0; i < J.cols(); ++i) {
-      if (singularValues_inv(i) > pinvtoler)
-        singularValues_inv(i) = 1.0 / singularValues_inv(i);
-      else
-        singularValues_inv(i) = 0;
-    }
-    MatrixXf pinvmat = svd.matrixV() * singularValues_inv.asDiagonal() *
-                       svd.matrixU().transpose();
-    // std::cout << pinvmat << std::endl;
-    errorpos = Refpos - Curpos;
-    // std::cout << errorpos << std::endl;
-    for (i = 0; i < 18; i++) {
-      servoP.errpos.t[i] = errorpos(i, 0);
-      // std::cout << servoP.refmarkpos.t[i] << std::endl;
-    }
-    DeltaJnt = pinvmat * errorpos;
-    // std::cout << DeltaJnt << std::endl;
-    for (i = 0; i < 6; i++)
-      servoP.deltaTheta.t[i] = DeltaJnt(i, 0);
-    // std::cout << DeltaJnt << std::endl;
-    for (i = 0; i < 6; i++) { //限位，每8ms关节运动量不超过1.4度
-      if ((DeltaJnt(i, 0) * Rad2Deg) > 1.4)
-        DeltaJnt(i, 0) = 0.024434609;
-      else if ((DeltaJnt(i, 0) * Rad2Deg) < -1.4)
-        DeltaJnt(i, 0) = -0.024434609;
-    }
-    for (i = 0; i < 6; i++)
-      servoP.xianweiTheta.t[i] = DeltaJnt(i, 0);
-    for (i = 0; i < 6; i++)
-      DeltaJntG(i, 0) = DeltaJnt(i, 0) * 0.025;
-    for (i = 0; i < 6; i++)
-      servoP.RefTheta.t[i] = servoP.CurTheta.t[i] + DeltaJntG(i, 0);
-
-    /*shape_servo*/
   } // if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON)
 
   for (i = 0; i < 6; i++) com_jnt_angle[i] = servoP.RefTheta.t[i];
@@ -300,9 +249,9 @@ void *interface_function(void *param) {
     case 'c':
     case 'C':
       //求出的结果是末端的位置Matrix61
-      testp = ur_kinematics(&(pSVO.jnk), testOri);
+      testp = ur_kinematics(testOri);
       printf("Current position of hand:\n");
-      printf("POS::%.2f[m],%.2f[m],%.2f[m],%.2f[deg], %.2f[deg], %.2f[deg]\n",
+      printf("POS::%.2f[mm],%.2f[mm],%.2f[mm],%.2f[deg], %.2f[deg], %.2f[deg]\n",
              testp(1, 1), testp(2, 1), testp(3, 1), testp(4, 1) * Rad2Deg,
              testp(5, 1) * Rad2Deg, testp(6, 1) * Rad2Deg);
       break;

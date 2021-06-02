@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     exit(1);
   }
   if (pthread_join(display_thread, NULL)) {
-    perror("pthread_join at displya_thread\n");
+    perror("pthread_join at display_thread\n");
     exit(1);
   }
 

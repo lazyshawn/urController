@@ -65,6 +65,7 @@ typedef struct {
 typedef struct {
   double c[6];
   double s[6];
+  double c23, s23, c234, s234;
 } JOINTLINK;
 typedef struct {
   double Jcb[6][6];

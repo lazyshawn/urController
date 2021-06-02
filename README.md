@@ -1,17 +1,17 @@
-## § urController
+## ✨ urController
 [![standard-readme compliant](
 https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](
 https://github.com/RichardLitt/standard-readme)
 
 This is a servo controller for UR5e.
 
-## § Download
+## ✨ Download
 Download this project locally.
 ```bash
 git clone https://github.com/lazyshawn/urController.git
 ```
 
-## § Usage
+## ✨ Usage
 ### Configuration of PC's Network
 1. Add static addresses according to your robot's IP, Netmarsk, and Gateway.
 Check them out at `setting -> system -> network` in your robot's Polyscope.
@@ -41,6 +41,6 @@ sudo ./demo_bin
 ```
 
 
-## § Maintainers
+## ✨ Maintainers
 [@lazyshawn](https://github.com/lazyshawn)
 

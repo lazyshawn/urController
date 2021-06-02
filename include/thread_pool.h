@@ -12,6 +12,7 @@
 #include "trajectory.h"
 #include "system_time.h"
 #include "user_interface.h"
+#include "ur_kinematics.h"
 #include "ur_driver.h"
 #include "matrix.h"
 #include <sys/mman.h>  // 内存管理

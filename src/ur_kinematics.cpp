@@ -89,8 +89,8 @@ MATRIX_D ur_jacobian(JACOBIAN *jcbn) {
   jcb(3,3) = -DH_A4*c23 + jcb(4,3); 
   // dr/dq2
   jcb(1,2) = -c1*foo2;
-  jcb(1,2) = -s1*foo2;
-  jcb(1,2) = -DH_A3*c2 + jcb(3,3); 
+  jcb(2,2) = -s1*foo2;
+  jcb(3,2) = -DH_A3*c2 + jcb(3,3); 
   // dr/dq1
   jcb(1,1) = -s1*foo11 - c1*foo12;
   jcb(2,1) = -s1*foo12 + c1*foo11;

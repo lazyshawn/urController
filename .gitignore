@@ -1,11 +1,17 @@
 # Code
-*
-*/*
+**
+
 !.gitignore
-!common.h
+
 !src
+
 !include
+
 !doc
-!script
+!doc/*
+!doc/pics/
+!doc/pics/*
+
+!script/
 !script/*.py
 

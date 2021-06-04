@@ -138,19 +138,17 @@ MATRIX_D RPY2RotMat(double alpha, double beta, double gamma) {
 
 MATRIX_D RotMat2EulerAngle(MATRIX_D rotMat) {
   MATRIX_D EulerAngle = Zeros(3, 1);
-  double alpha, beta, gamma, r11, r12, r13, r21, r22, r23, r31;
-  r31 = rotMat(3, 1);
-  r11 = rotMat(1, 1);
-  r21 = rotMat(2, 1);
-  r12 = rotMat(1, 2);
-  r22 = rotMat(2, 2);
-  r13 = rotMat(1, 3);
-  r23 = rotMat(2, 3);
+  double alpha, beta, gamma, r11, r21, r31, r32, r33;
+  r31 = rotMat(3,1);
+  r11 = rotMat(1,1);
+  r21 = rotMat(2,1);
+  r32 = rotMat(3,2);
+  r33 = rotMat(3,3);
 
-  gamma = atan2(r21, r11);
-  beta = atan2(-r31, r11 * cos(gamma) + r21 * sin(gamma));
-  alpha = atan2(r13 * sin(gamma) - r23 * cos(gamma),
-                -r12 * sin(gamma) + r22 * cos(gamma));
+  beta = atan2(-r31, sqrt(r11*r11+r21*r21));
+  alpha = atan2(r21/cos(beta), r11/cos(beta));
+  gamma = atan2(r32/cos(beta), r33/cos(beta));
+
   EulerAngle = MatD31(alpha, beta, gamma);
   return EulerAngle;
 }

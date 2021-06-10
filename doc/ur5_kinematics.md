@@ -19,6 +19,7 @@ Link parameters of the UR5 (**Modified DH**).
 
 
 ## ✨ Jacobian of UR5
+### 位置分量
 固连在关节 6 上的坐标系的原点位置表达式如下:
 $$
 {\bf{r}} = \left[ {\begin{array}{c}
@@ -74,8 +75,61 @@ d_6( - {c_1}{s_5} + {s_1}{c_{234}}{c_5})\\
 \end{array}
 $$
 
-同理，由 $\omega = J_\omega {\dot \theta}$ 得，
-Jacobian 矩阵角速度分量的各列分别如下:
+### 姿态分量
+同理，末端相对于基坐标系的姿态为
+$$
+{}_6^0R = \left[ {\begin{array}{ccc}
+{{s_1}{s_5}{c_6} + {c_1}{c_{234}}{c_5}{c_6} - {c_1}{s_{234}}{s_6}} &
+{-{s_1}{s_5}{s_6} - {c_1}{c_{234}}{c_5}{s_6} - {c_1}{s_{234}}{c_6}} &
+{{c_1}{c_{234}}{s_5} - {s_1}{c_5}} \\
+{-{c_1}{s_5}{c_6} + {s_1}{c_{234}}{c_5}{c_6} - {s_1}{s_{234}}{s_6}} &
+{{c_1}{s_5}{s_6} - {s_1}{c_{234}}{c_5}{s_6} - {s_1}{s_{234}}{c_6}} &
+{{c_1}{c_5} + {s_1}{c_{234}}{s_5}}\\
+{-{c_{234}}{s_6} - {s_{234}}{c_5}{c_6}} & 
+{{s_{234}}{c_5}{s_6} - {c_{234}}{c_6}} & 
+{ - {s_{234}}{s_5}}
+\end{array}} \right]
+$$
+
+小角度下 ($q_w\to0$) 为避免使用除法进行计算，旋转矩阵转换为四元数的公式为[^quaternion]:
+$$
+4\left[\begin{array}{c}q_w^2\\q_x^2\\q_y^2\\q_z^2\end{array}\right] = 
+\left[ {\begin{array}{cccc}
+1 & 1 & 1 & 1 \\ 1 & -1 & -1 & 1 \\ -1 & 1 & -1 & 1 \\ -1 & -1 & 1 & 1
+\end{array}} \right]
+\left[ {\begin{array}{c}
+r_{11} \\ r_{22} \\ r_{33} \\ 1
+\end{array}} \right]
+$$
+
+以 $q_x$ 和 $\theta_1$ 对应的 Jacobian 分量为例，
+将 $4q_x^2 = {r_{11}} - {r_{22}} - {r_{33}} + 1$ 两边同时对 $\theta_1$ 取微分得:
+
+$$
+\begin{array}{rl}
+8{q_x}\frac{{\partial {q_x}}}{{\partial {\theta _1}}} =& 
+\frac{{\partial {r_{11}}}}{{\partial {\theta _1}}} - 
+\frac{{\partial {r_{22}}}}{{\partial {\theta _1}}} - 
+\frac{{\partial {r_{33}}}}{{\partial {\theta _1}}}\\
+\frac{{\partial {q_x}}}{{\partial {\theta _1}}} =& 
+\frac{{\partial {r_{11}}/\partial {\theta _1} - 
+\partial r_{22}/\partial {\theta _1} - \partial {r_{33}}/\partial {\theta _1}}}
+{{4\sqrt {{r_{11}} - {r_{22}} - {r_{33}} + 1} }}
+\end{array}
+$$
+
+下表展示了旋转矩阵中主对角线上的元素对各关节角的偏微分。
+| $\partial r\mathord{\left/\right.}\partial q$ | r11   | r22   | r33   |
+|:---:|:-----:|:-----:|:-----:|
+| $\theta_1$ | $c_1s_5c_6-s_1c_{234}c_5c_6+s_1s_{234}s_6$  | $-s_1s_5s_6-c_1c_{234}c_5c_6-c_1s_{234}c_6$ | $0$ |
+| $\theta_2$ | $-c_1s_{234}c_5c_6-c_1c_{234}s_6$           | $s_1s_{234}c_5s_6-s_1c_{234}c_6$ | $-c_{234}s_5$ |
+| $\theta_3$ | $-c_1s_{234}c_5c_6-c_1c_{234}s_6$           | $s_1s_{234}c_5s_6-s_1c_{234}c_6$ | $-c_{234}s_5$ |
+| $\theta_4$ | $-c_1s_{234}c_5c_6-c_1c_{234}s_6$           | $s_1s_{234}c_5s_6-s_1c_{234}c_6$ | $-c_{234}s_5$ |
+| $\theta_5$ | $s_1c_5c_6-c_1c_{234}s_5c_6$                | $c_1c_5s_6+s_1c_{234}s_5s_6$ |     $-s_{234}c_5$ |
+| $\theta_6$ | $-s_1s_5s_6-c_1c_{234}c_5s_6-c_1s_{234}c_6$ | $c_1s_5c_6-s_1c_{234}c_5c_6+s_1s_{234}s_6$ | $0$ |
+
+由 $\dot q = J_\omega {\dot \theta}$ 得，
+$[q_x, q_y, q_z]^T$ 对应的 Jacobian 矩阵分量的各列为各关节角的方向向量，即:
 $$
 J_\omega = \left[ {\begin{array}{cc}
 0 & { - {s_1}} & -s_1 & -s_1 & -c_1{s_{234}} &  - {s_1}{c_5} + {c_1}{c_{234}}{s_5} \\
@@ -84,6 +138,8 @@ J_\omega = \left[ {\begin{array}{cc}
 \end{array}} \right]
 $$
 
+
+[^quaternion]: Tomas K.M, Eric H, Naty H. Real Time Rendering 4th Edition, p80-p81, 2008.
 
 
 ## ✨ Appendix A. ur\_kinematics.m

@@ -120,14 +120,15 @@ def ur_jacobian(q):
   ijcb = np.linalg.inv(jcb)
 
 
-dt = 1      # 采样间隔 (ms)
-T  = 1000   # 运行时间 (ms)
-w  = 90*d2r # 角速度 (rad/s)
+dt = 10     # 采样间隔 (ms)
+T  = 20000  # 运行时间 (ms)
+w  = 30*d2r # 角速度 (rad/s)
+v  = 0      # 线速度 (mm/s)
 nn = int(T/dt+1) # 采样点数
 q0 = np.array([0, -90, 90, -90, -90, 0]).reshape((6,1))*d2r  # 初始关节角
 pos = np.zeros((3,nn))
 q_jnt = np.zeros((6,nn))
-dx = np.array([200/(T/dt), 0, 0, w/(T/dt), 0, 0]).reshape((6,1))  # 每个周期的状态变化
+dx = np.array([v/(T/dt), 0, 0, w/(T/dt), 0, 0]).reshape((6,1))  # 每个周期的状态变化
 time = np.linspace(0, int(T), int(T/dt+1)) # 时间
 
 # 循环开始
@@ -192,7 +193,7 @@ hnd_z = pos[2,:]
 # 方向向量长度
 vec_len = 200
 
-# 起点、终点坐标
+# 起点、终点、原点坐标
 ax2.scatter(hnd_x[0], hnd_y[0], hnd_z[0], marker='*', color='darkorange',
         linewidth=2.5, label='Start point')
 ax2.scatter(hnd_x[-1], hnd_y[-1], hnd_z[-1], marker='*', color='m',
@@ -225,6 +226,29 @@ ax2.legend(loc='best')
 ax2.set_xlim(0, 800)
 ax2.set_ylim(-400,400)
 ax2.set_zlim(0, 800)
+
+
+####################################################################
+# 绘制子图2: 末端位姿变化曲线
+####################################################################
+ax3 = fig.add_subplot(223,projection='3d')
+
+ax3.scatter(hnd_x[0], hnd_y[0], hnd_z[0], marker='*', color='darkorange',
+        linewidth=2.5, label='Start point')
+ax3.scatter(hnd_x[-1], hnd_y[-1], hnd_z[-1], marker='*', color='m',
+        linewidth=2.5, label='End point')
+ax3.ticklabel_format(useOffset=False, style='plain')
+xmin, xmax = ax3.get_xlim()
+ymin, ymax = ax3.get_ylim()
+zmin, zmax = ax3.get_zlim()
+ax3.plot(hnd_x, hnd_y, hnd_z, label='Displacement in 3D space')
+ax3.plot(hnd_y, hnd_z, zs=xmin, zdir='x', linestyle=':', label='Displacement in (y, z)')
+ax3.plot(hnd_x, hnd_z, zs=ymax, zdir='y', linestyle=':', label='Displacement in (x, z)')
+ax3.plot(hnd_x, hnd_y, zs=zmin, zdir='z', linestyle=':', label='Displacement in (x, y)')
+
+ax3.set(xlabel = r'X/mm', ylabel = r'Y/mm', zlabel = r'Z/mm',
+        title = '末端位置轨迹图')
+ax3.legend(loc='best')
 
 ####################################################################
 # 后处理

@@ -13,6 +13,7 @@
 
 #define MY_PRIORITY (49)
 #define MAX_SAFE_STACK (8 * 1024)
+// #define ROBOT_OFFLINE
 
 // 线程结束标志
 struct shm_interface shm_servo_inter;
@@ -40,15 +41,21 @@ int main(int argc, char** argv) {
   int interval = 8000000; /* 8 ms*/
   shm_servo_inter.status_control = INIT_C;
 
+#ifndef ROBOT_OFFLINE
   /* connect to ur robot */
   std::cout << "Connecting to " << ur_ip << std::endl;
   UrDriver urRobot(rt_ur_msg_cond, ur_msg_cond, ur_ip, ur_post);
-
-#ifndef ROBOT_OFFLINE
   urRobot.start();
   urRobot.setServojTime(0.008);
   sleep(1);
   urRobot.uploadProg();
+#else
+  UrDriver* urRobot;
+  std::vector<double> jnt_angle = {0, -90, 90, -90, -90, 0};
+  for (int i=0; i<6; ++i) {
+    jnt_angle[i] *= Deg2Rad;
+    pSVO.RefTheta.t[i] = jnt_angle[i];
+  }
 #endif
 
   /* Declare ourself as a real time task */
@@ -92,7 +99,11 @@ int main(int argc, char** argv) {
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
 
     /* 伺服线程 */
+#ifndef ROBOT_OFFLINE
     servo_function(&urRobot);
+#else
+    servo_function(urRobot);
+#endif
 
     /* calculate next shot */
     // 设置下一个线程恢复的时间

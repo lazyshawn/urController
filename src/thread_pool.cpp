@@ -3,17 +3,8 @@
  * *********************************************************/
 
 #include "../include/thread_pool.h"
+// #define ROBOT_OFFLINE
 
-/*Eigen matrix*/
-MatrixXf Refpos(18, 1);
-MatrixXf Curpos(18, 1);
-MatrixXf errorpos(18, 1);
-MatrixXf jacobiE(6, 6);
-MatrixXf DeltaJnt(6, 1);
-MatrixXf DeltaJntG(6, 1);
-MatrixXf GripperToPoint(1, 6);
-MatrixXf Radius(18, 1);
-/*Eigen matrix*/
 int cnt = 0;
 float coordinate[18];
 
@@ -67,29 +58,28 @@ void servo_function(UrDriver *ur) {
 #ifndef ROBOT_OFFLINE
   jnt_angle = ur->rt_interface_->robot_state_->getQActual();
   jnt_angleD = ur->rt_interface_->robot_state_->getQdActual();
-#endif
   // copy the UR state
   for (i = 0; i < 6; i++) {
     servoP.CurTheta.t[i] = jnt_angle[i];
     // 计算各关节角的正余弦值
-    calcJnt(jnt_angle);
     // ensure the robot do not move after setup
     servoP.RefTheta.t[i] = jnt_angle[i]; 
     servoP.CurDTheta.t[i] = jnt_angleD[i];
   }
+#else
+  for (int i=0; i<6; ++i) {
+    servoP.CurTheta.t[i] = servoP.RefTheta.t[i];
+    jnt_angle[i] = servoP.CurTheta.t[i];
+  }
+#endif
 
   /* Update the kinematics calculation*/
+  calcJnt(jnt_angle);
   // 返回末端夹持点的位置坐标
   pos = ur_kinematics(hnd_ori);
   for (i = 0; i < 6; i++) P[i] = pos(i+1, 1);
 
-  // 计算tcp到末端标记点的距离
-  GripperToPoint = ComputeDistance(coordinate, 18, P, 6);
-  // 计算点在执行器坐标系下的半径
-  Radius = ComputeRadiusVector(coordinate, 18, P, 6);
-
   for (i = 0; i < 6; i++) {
-    servoP.distogripper.t[i] = GripperToPoint(0, i);
     // The start position of the tcp during next path
     servoP.CurPos.t[i] = pos(i+1, 1);
   }
@@ -124,11 +114,13 @@ void servo_function(UrDriver *ur) {
                    &servoP.RefDTheta);
   // 末端位姿的伺服控制
   if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON) {
+    double dt = 0.01;
+    double v = 0, w = 45*Deg2Rad;
     double offsetTime = GetOffsetTime();
     MATRIX_D dq = MatD61(0,0,0,0,0,0);
     if (servoP.Path.Freq * offsetTime <= 1) {
       jcb = ur_jacobian(jcbn);
-      MATRIX_D dhnd = MatD61(1,0,0,0,0,0);
+      MATRIX_D dhnd = MatD61(v*servoP.Path.Freq*dt,0,0,w*servoP.Path.Freq*dt,0,0);
       MATRIX_D ijcb(6,6, (double *)jcbn->invJcb);
       dq = ijcb*dhnd;
     }
@@ -136,6 +128,7 @@ void servo_function(UrDriver *ur) {
     double delQ[6];
     delQ <<= dq;
     for (int i=0; i<6; ++i) {
+      delQ[i] = (delQ[i]<1.4*Deg2Rad) ? delQ[i] : 0;
       servoP.RefTheta.t[i] = servoP.CurTheta.t[i] + delQ[i];
     }
   } // if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON)

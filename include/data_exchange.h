@@ -10,6 +10,10 @@
 #include "common.h"
 #include "trajectory.h"
 #include "system_time.h"
+// 文件读写
+#include <fstream>
+#include <iostream>
+#include <iomanip>
 
 void SvoReadFromServo(SVO *data);
 void SvoWriteFromServo(SVO *data);

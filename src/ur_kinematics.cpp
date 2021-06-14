@@ -97,7 +97,7 @@ MATRIX_D ur_jacobian(JACOBIAN *jcbn) {
   /* ****** 转动分量 ****** */
   jcb(6,1) = 1;
   jcb(4,2) = jcb(4,3) = jcb(4,4) = -s1;
-  jcb(5,2) = jcb(5,3) = jcb(5,4) = -s1;
+  jcb(5,2) = jcb(5,3) = jcb(5,4) = c1;
   jcb(4,5) = -c1*s234;
   jcb(5,5) = -s1*s234;
   jcb(6,5) = -c234;               

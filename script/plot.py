@@ -19,8 +19,8 @@ plt.rcParams['axes.unicode_minus'] = False
 ####################################################################
 # 读入数据
 ####################################################################
-data_theta  = np.loadtxt("../data/data.theta", dtype=float)
-data_curPos = np.loadtxt("../data/data.Curpos", dtype=float)
+data_theta  = np.loadtxt("../data/data.curtheta", dtype=float)
+data_curPos = np.loadtxt("../data/data.curpos", dtype=float)
 time = data_theta[:,0]
 
 
@@ -163,6 +163,7 @@ ax3 = fig.add_subplot(223,projection='3d')
 ax3.quiver(0,0,0,1,0,0,length=1,normalize=False)
 ax3.quiver(0,0,0,0,1,0,length=1, color='g' , normalize=False)
 ax3.quiver(0,0,0,0,0,1,length=1, color='r' , normalize=False)
+
 ax3.set_xlim(-1,1)
 ax3.set_ylim(-1,1)
 ax3.set_zlim(-1,1)

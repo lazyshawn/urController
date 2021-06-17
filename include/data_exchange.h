@@ -14,6 +14,18 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+// Mutural exclusion
+#include <mutex>
+
+class Config {
+public:
+  SVO getCopy(void);
+  void update(SVO* SVO_);
+
+private:
+  std::mutex config_mutex;
+  SVO data;
+};
 
 void SvoReadFromServo(SVO *data);
 void SvoWriteFromServo(SVO *data);

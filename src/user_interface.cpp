@@ -1,6 +1,9 @@
 
 #include "../include/user_interface.h"
 
+// Defined in dataExchange.cpp
+extern Config config;
+
 void DisplayMenu(void) {
   printf("\n**************Menu (please input [CR])*****************\n");
   printf("CurPosOfHnd:*************[c : C]\n");
@@ -14,7 +17,7 @@ void DisplayMenu(void) {
 
 void DisplayCurrentInformation() {
   SVO svoLocal;
-  SvoReadFromServo(&svoLocal);
+  svoLocal = config.getCopy();
 
   printf("--------------------- Current Information -----------------------\n");
   printf("Path frequency = %f [Hz]\n", svoLocal.Path.Freq);

@@ -11,13 +11,11 @@
 #include "../include/ur_driver.h"
 #include "../include/thread_pool.h"
 
+extern Config config;
 // 线程结束标志
 struct shm_interface shm_servo_inter;
 // 线程之间的的互斥锁-全局
 pthread_mutex_t servo_inter_mutex = PTHREAD_MUTEX_INITIALIZER;
-// 全局的共享变量
-extern SVO pSVO;
-extern pthread_mutex_t mymutex;
 
 int main(int argc, char** argv) {
   // UR通信的条件变量
@@ -33,6 +31,8 @@ int main(int argc, char** argv) {
   // 一个伺服周期内的纳秒数
   int interval = 8000000; /* 8 ms*/
   shm_servo_inter.status_control = INIT_C;
+  // 系统状态备份
+  SVO svoLocal;
 
 #ifndef ROBOT_OFFLINE
   /* connect to ur robot */
@@ -47,9 +47,11 @@ int main(int argc, char** argv) {
   std::vector<double> jnt_angle = {0, -90, 90, -90, -90, 0};
   for (int i=0; i<6; ++i) {
     jnt_angle[i] *= Deg2Rad;
-    pSVO.RefTheta.t[i] = jnt_angle[i];
+    svoLocal.RefTheta.t[i] = jnt_angle[i];
   }
 #endif
+  // 同步全局变量
+  config.update(&svoLocal);
 
   /* Declare ourself as a real time task */
   // 设置线程的优先级(最大为99)

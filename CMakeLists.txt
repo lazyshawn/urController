@@ -4,6 +4,7 @@
 cmake_minimum_required(VERSION 3.5)
 # Project name | ${PROJECT_NAME}
 project(demo)
+set(CMAKE_CXX_STANDARD 17)
 
 ############################################################################
 # ==>> Generate a library

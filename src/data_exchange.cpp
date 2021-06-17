@@ -4,25 +4,36 @@
 
 #include "../include/data_exchange.h"
 
-// Shared variable
-SVO pSVO;
 // 线程访问全局变量的互斥锁
 pthread_mutex_t servoMutex = PTHREAD_MUTEX_INITIALIZER;
+std::mutex config_mutex;
+// Shared variable
+Config config;
+
 int flag_WriteData = OFF;
 int flag_SaveData = OFF;
 
 /* 读取全局共享变量到线程 */
-void SvoReadFromServo(SVO *data) {
-  pthread_mutex_lock(&servoMutex);
-  *data = pSVO;
-  pthread_mutex_unlock(&servoMutex);
+SVO Config::getCopy(void) {
+  std::scoped_lock guard(config_mutex);
+  return data;
 }
+// void SvoReadFromServo(SVO *data) {
+//   pthread_mutex_lock(&servoMutex);
+//   *data = pSVO;
+//   pthread_mutex_unlock(&servoMutex);
+// }
+
 /* 将线程更新的共享变量同步到全局 */
-void SvoWriteFromServo(SVO *data) {
-  pthread_mutex_lock(&servoMutex);
-  pSVO = *data;
-  pthread_mutex_unlock(&servoMutex);
+void Config::update(SVO* SVO_) {
+  std::scoped_lock guard(config_mutex);
+  data = *SVO_;
 }
+// void SvoWriteFromServo(SVO *data) {
+//   pthread_mutex_lock(&servoMutex);
+//   pSVO = *data;
+//   pthread_mutex_unlock(&servoMutex);
+// }
 
 /* 手动添加关节角路劲 */
 void ChangePathData(PATH *path) {
@@ -70,12 +81,14 @@ void PosOriServo(int *posoriservoflag) { *posoriservoflag = ON; }
 void SetPosOriSvo(SVO *data) {
   int ret;
   double time;
+  SVO svoLocal;
 
-  pSVO.PosOriServoFlag = data->PosOriServoFlag;
-  pSVO.Path = data->Path;
+  svoLocal = config.getCopy();
+  svoLocal.PosOriServoFlag = data->PosOriServoFlag;
+  svoLocal.Path = data->Path;
 
   // initTrjBuff();
-  ret = PutTrjBuff(&pSVO.Path);
+  ret = PutTrjBuff(&svoLocal.Path);
   printf("ret=%d\n", ret);
 
   if (ret == 1) {
@@ -84,17 +97,18 @@ void SetPosOriSvo(SVO *data) {
     printf("PutTrjBuff is OK\n");
     printf("Goal position[m] and axis angle[deg] of the hand:\n");
     printf("X\tY\tZ\tAlpha\tBetaY\tGama\n");
-    printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n", pSVO.Path.Goal[0],
-           pSVO.Path.Goal[1], pSVO.Path.Goal[2],
-           pSVO.Path.Goal[3] * Rad2Deg, pSVO.Path.Goal[4] * Rad2Deg,
-           pSVO.Path.Goal[5] * Rad2Deg);
+    printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n", svoLocal.Path.Goal[0],
+           svoLocal.Path.Goal[1], svoLocal.Path.Goal[2],
+           svoLocal.Path.Goal[3] * Rad2Deg, svoLocal.Path.Goal[4] * Rad2Deg,
+           svoLocal.Path.Goal[5] * Rad2Deg);
   }
-  printf("> OUT frequency <  %f [Hz]\n", pSVO.Path.Freq);
-  printf("> OUT mode <  %d\n", pSVO.Path.Mode);
+  printf("> OUT frequency <  %f [Hz]\n", svoLocal.Path.Freq);
+  printf("> OUT mode <  %d\n", svoLocal.Path.Mode);
 
-  pSVO.ServoFlag = ON;
-  pSVO.NewPathFlag = ON;
-  pSVO.PathtailFlag = OFF;
+  svoLocal.ServoFlag = ON;
+  svoLocal.NewPathFlag = ON;
+  svoLocal.PathtailFlag = OFF;
+  config.update(&svoLocal);
 
   ResetTime();
   time = GetCurrentTime();
@@ -104,12 +118,13 @@ void SetPosOriSvo(SVO *data) {
 void SetJntSvo(SVO *data) {
   int ret;
   double time;
+  SVO svoLocal = config.getCopy();
 
-  pSVO.Path = data->Path;
-  pSVO.Gain = data->Gain;
+  svoLocal.Path = data->Path;
+  svoLocal.Gain = data->Gain;
 
   // initTrjBuff();
-  ret = PutTrjBuff(&pSVO.Path);
+  ret = PutTrjBuff(&svoLocal.Path);
   printf("ret=%d\n", ret);
 
   if (ret == 1) //
@@ -117,15 +132,16 @@ void SetJntSvo(SVO *data) {
   else {
     printf("PutTrjBuff is OK\n");
     printf("Goal angles < %f, %f, %f, %f, %f, %f [deg]\n",
-           pSVO.Path.Goal[0] * Rad2Deg, pSVO.Path.Goal[1] * Rad2Deg,
-           pSVO.Path.Goal[2] * Rad2Deg, pSVO.Path.Goal[3] * Rad2Deg,
-           pSVO.Path.Goal[4] * Rad2Deg, pSVO.Path.Goal[5] * Rad2Deg);
-    printf("> OUT frequency <  %f [Hz]\n", pSVO.Path.Freq);
-    printf("> OUT mode <  %d\n", pSVO.Path.Mode);
+           svoLocal.Path.Goal[0] * Rad2Deg, svoLocal.Path.Goal[1] * Rad2Deg,
+           svoLocal.Path.Goal[2] * Rad2Deg, svoLocal.Path.Goal[3] * Rad2Deg,
+           svoLocal.Path.Goal[4] * Rad2Deg, svoLocal.Path.Goal[5] * Rad2Deg);
+    printf("> OUT frequency <  %f [Hz]\n", svoLocal.Path.Freq);
+    printf("> OUT mode <  %d\n", svoLocal.Path.Mode);
 
-    pSVO.ServoFlag = ON;
-    pSVO.NewPathFlag = ON;
-    pSVO.PathtailFlag = OFF;
+    svoLocal.ServoFlag = ON;
+    svoLocal.NewPathFlag = ON;
+    svoLocal.PathtailFlag = OFF;
+  config.update(&svoLocal);
 
     ResetTime();
     time = GetCurrentTime();
@@ -150,6 +166,7 @@ void SaveDataReset() { Exp_data_index = 0; }
 
 // 将记录的数据写入文件
 void ExpDataWrite() {
+  SVO svoLocal = config.getCopy();
   std::ofstream f_curpos, f_refpos, f_curtheta, f_reftheta;
   int len = 16;
 

@@ -12,6 +12,14 @@ Notation:
 <!-- The format is based on Keep a [Changelog](https://keepachangelog.com/en/1.0.0/). -->
 
 ## ✨ Logs
+### 210617
+>commit
+[52d2eea](
+https://github.com/lazyshawn/urController/commit/52d2eea5f37744a308ff5738d7bbc8db7ee1be41)
+
+1. `perf`: 主函数中改用 C++17 标准的线程。
+
+
 ### 210614
 > commit
 [16431e8](
@@ -19,7 +27,7 @@ https://github.com/lazyshawn/urController/commit/16431e873d1005f81c0eae4becbccf4
 
 日常维护。
 1. 添加修改日志。
-1. fix: 修改 Jacobian 矩阵，实现正确的角速度控制。
-1. perf: 修改文件写入函数，使用C++风格。
-1. perf: 添加离线运行功能。
+1. `fix`: 修改 Jacobian 矩阵，实现正确的角速度控制。
+1. `perf`: 修改文件写入函数，使用C++风格。
+1. `perf`: 添加离线运行功能。
 

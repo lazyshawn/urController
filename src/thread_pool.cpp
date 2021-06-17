@@ -9,16 +9,16 @@ float coordinate[18];
 
 // 线程结束标志
 extern struct shm_interface shm_servo_inter;
-// 全局的共享变量
-extern SVO pSVO;
+// Defined from dataExchange.cpp
+extern Config config;
 
 /* 伺服主程序 */
 void servo_function(UrDriver *ur) {
   int i, ret;
   double curtime;
   float P[6];          // 末端夹持点(TCP)的位置坐标
-  SVO servoP;
-  SVO_SAVE servoSave;
+  SVO svoLocal;
+  SVO_SAVE svoSave;
   PATH path;
 
   // Matrix_D: 元素为double类型的矩阵
@@ -39,11 +39,11 @@ void servo_function(UrDriver *ur) {
   std::vector<double> com_jnt_angle(6);
 
   /* Copy global SVO */
-  SvoReadFromServo(&servoP);
+  svoLocal = config.getCopy();
 
   // Get the current time
   curtime = GetCurrentTime();
-  servoP.Time = curtime;
+  svoLocal.Time = curtime;
 
   /* Get target information */
   // 从其他线程/进程获取目标信息
@@ -67,8 +67,8 @@ void servo_function(UrDriver *ur) {
   }
 #else
   for (int i=0; i<6; ++i) {
-    servoP.CurTheta.t[i] = servoP.RefTheta.t[i];
-    jnt_angle[i] = servoP.CurTheta.t[i];
+    svoLocal.CurTheta.t[i] = svoLocal.RefTheta.t[i];
+    jnt_angle[i] = svoLocal.CurTheta.t[i];
   }
 #endif
 
@@ -80,46 +80,46 @@ void servo_function(UrDriver *ur) {
 
   for (i = 0; i < 6; i++) {
     // The start position of the tcp during next path
-    servoP.CurPos.t[i] = pos(i+1, 1);
+    svoLocal.CurPos.t[i] = pos(i+1, 1);
   }
 
   /* Pop path info */
   // ************* should be noticed *************
-  if (servoP.NewPathFlag == ON) { // 新路径
-    if (servoP.PathtailFlag == OFF) {  // 路径未结束
+  if (svoLocal.NewPathFlag == ON) { // 新路径
+    if (svoLocal.PathtailFlag == OFF) {  // 路径未结束
       ret = GetTrjBuff(&path);
       if (ret == 0) {
-        servoP.Path = path;  // 取出新的路劲信息
+        svoLocal.Path = path;  // 取出新的路劲信息
         SetStartTime(curtime);
       } else {
-        servoP.PathtailFlag = ON;
+        svoLocal.PathtailFlag = ON;
       }
       // the case GetOffsettime > 1/servoP.path.Freq
-      servoP.NewPathFlag = ON;
+      svoLocal.NewPathFlag = ON;
     }
   } // if (servoP.NewPathFlag == ON)
 
   // Set path.orig
-  if (servoP.NewPathFlag == ON) {
+  if (svoLocal.NewPathFlag == ON) {
     for (i = 0; i < 6; i++) {
-      servoP.Path.Orig[i] = servoP.CurTheta.t[i];
+      svoLocal.Path.Orig[i] = svoLocal.CurTheta.t[i];
     }
-    servoP.NewPathFlag = OFF;
+    svoLocal.NewPathFlag = OFF;
   }
   /* 计算轨迹插补点(关节角目标值) */
   // 角度的伺服控制
-  if (servoP.ServoFlag == ON && servoP.PosOriServoFlag == OFF)
-    CalcJntRefPath(GetOffsetTime(), &servoP.Path, &servoP.RefTheta,
-                   &servoP.RefDTheta);
+  if (svoLocal.ServoFlag == ON && svoLocal.PosOriServoFlag == OFF)
+    CalcJntRefPath(GetOffsetTime(), &svoLocal.Path, &svoLocal.RefTheta,
+                   &svoLocal.RefDTheta);
   // 末端位姿的伺服控制
-  if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON) {
+  if (svoLocal.PosOriServoFlag == ON && svoLocal.ServoFlag == ON) {
     double dt = 0.01;
     double v = 0, w = 45*Deg2Rad;
     double offsetTime = GetOffsetTime();
     MATRIX_D dq = MatD61(0,0,0,0,0,0);
-    if (servoP.Path.Freq * offsetTime <= 1) {
+    if (svoLocal.Path.Freq * offsetTime <= 1) {
       jcb = ur_jacobian(jcbn);
-      MATRIX_D dhnd = MatD61(v*servoP.Path.Freq*dt,0,0,w*servoP.Path.Freq*dt,0,0);
+      MATRIX_D dhnd = MatD61(v*svoLocal.Path.Freq*dt,0,0,w*svoLocal.Path.Freq*dt,0,0);
       MATRIX_D ijcb(6,6, (double *)jcbn->invJcb);
       dq = ijcb*dhnd;
     }
@@ -128,87 +128,82 @@ void servo_function(UrDriver *ur) {
     delQ <<= dq;
     for (int i=0; i<6; ++i) {
       delQ[i] = (delQ[i]<1.4*Deg2Rad) ? delQ[i] : 0;
-      servoP.RefTheta.t[i] = servoP.CurTheta.t[i] + delQ[i];
+      svoLocal.RefTheta.t[i] = svoLocal.CurTheta.t[i] + delQ[i];
     }
   } // if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON)
 
-  for (i = 0; i < 6; i++) com_jnt_angle[i] = servoP.RefTheta.t[i];
+  for (i = 0; i < 6; i++) com_jnt_angle[i] = svoLocal.RefTheta.t[i];
 #ifndef ROBOT_OFFLINE
   // 机械臂执行运动指令
   ur->servoj(com_jnt_angle, 1);
 #endif
   /* 记录待保存的数据 */
-  if (servoP.ServoFlag == ON) {
+  if (svoLocal.ServoFlag == ON) {
     if (cnt % EXP_DATA_INTERVAL == 0) {
-      servoSave.Time = GetCurrentTime();
-      servoSave.CurTheta = servoP.CurTheta;
-      servoSave.CurDTheta = servoP.CurDTheta;
-      servoSave.CurPos = servoP.CurPos;
-      servoSave.RefPos = servoP.RefPos;
-      servoSave.RefTheta = servoP.RefTheta;
-      servoSave.Gain = servoP.Gain;
-      servoSave.Path = servoP.Path;
-      servoSave.markpos = servoP.markpos;
-      servoSave.distogripper = servoP.distogripper;
-      servoSave.deltaTheta = servoP.deltaTheta;
-      servoSave.errpos = servoP.errpos;
-      servoSave.refmarkpos = servoP.refmarkpos;
-      servoSave.xianweiTheta = servoP.xianweiTheta;
-      ExpDataSave(&servoSave);
+      svoSave.Time = GetCurrentTime();
+      svoSave.CurTheta = svoLocal.CurTheta;
+      svoSave.CurDTheta = svoLocal.CurDTheta;
+      svoSave.CurPos = svoLocal.CurPos;
+      svoSave.RefPos = svoLocal.RefPos;
+      svoSave.RefTheta = svoLocal.RefTheta;
+      svoSave.Gain = svoLocal.Gain;
+      svoSave.Path = svoLocal.Path;
+      svoSave.markpos = svoLocal.markpos;
+      svoSave.distogripper = svoLocal.distogripper;
+      svoSave.deltaTheta = svoLocal.deltaTheta;
+      svoSave.errpos = svoLocal.errpos;
+      svoSave.refmarkpos = svoLocal.refmarkpos;
+      svoSave.xianweiTheta = svoLocal.xianweiTheta;
+      ExpDataSave(&svoSave);
     }
   }
   /* Interact with the GUI */
-  SvoWriteFromServo(&servoP);
+  // SvoWriteFromServo(&servoP);
+  config.update(&svoLocal);
   cnt++;
 }
 
 void display(void) {
   int status_interface, i;
   int loop_counter = 0;
-  SVO display_svo;
+  SVO svoLocal;
   double time;
   double jnt_angle[6];
 
   do {
     time = GetCurrentTime();
+    svoLocal = config.getCopy();
 
-    SvoReadFromServo(&display_svo);
-    if ((display_svo.PosOriServoFlag == ON) && (display_svo.ServoFlag == ON) &&
-        (GetOffsetTime() < (1.0 / (double)display_svo.Path.Freq))) {
+    if ((svoLocal.PosOriServoFlag == ON) && (svoLocal.ServoFlag == ON) &&
+        (GetOffsetTime() < (1.0 / (double)svoLocal.Path.Freq))) {
       printf("\n");
       printf("TIME:%0.1f\n", time);
       printf("Current position of hand:\n");
       printf("X[m]\tY[m]\tZ[m]\tAlpha[deg]\tBeta[deg]\tGama[Deg]\n");
       printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-             display_svo.CurPos.t[0], display_svo.CurPos.t[1],
-             display_svo.CurPos.t[2], display_svo.CurPos.t[3] * Rad2Deg,
-             display_svo.CurPos.t[4] * Rad2Deg,
-             display_svo.CurPos.t[5] * Rad2Deg);
+             svoLocal.CurPos.t[0], svoLocal.CurPos.t[1],
+             svoLocal.CurPos.t[2], svoLocal.CurPos.t[3] * Rad2Deg,
+             svoLocal.CurPos.t[4] * Rad2Deg,
+             svoLocal.CurPos.t[5] * Rad2Deg);
       printf("Reference position of hand:\n");
       printf("X[m]\tY[m]\tZ[m]\tAlpha[deg]\tBeta[deg]\tGama[Deg]\n");
       printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-             display_svo.RefPos.t[0], display_svo.RefPos.t[1],
-             display_svo.RefPos.t[2], display_svo.RefPos.t[3] * Rad2Deg,
-             display_svo.RefPos.t[4] * Rad2Deg,
-             display_svo.RefPos.t[5] * Rad2Deg);
+             svoLocal.RefPos.t[0], svoLocal.RefPos.t[1],
+             svoLocal.RefPos.t[2], svoLocal.RefPos.t[3] * Rad2Deg,
+             svoLocal.RefPos.t[4] * Rad2Deg,
+             svoLocal.RefPos.t[5] * Rad2Deg);
     }
-    if ((display_svo.PosOriServoFlag == OFF) && (display_svo.ServoFlag == ON) &&
-        (GetOffsetTime() < (1.0 / (double)display_svo.Path.Freq))) {
+    if ((svoLocal.PosOriServoFlag == OFF) && (svoLocal.ServoFlag == ON) &&
+        (GetOffsetTime() < (1.0 / (double)svoLocal.Path.Freq))) {
       printf("\n");
       printf("T: %.2f Ref[deg]: %.2f %.2f %.2f %.2f %.2f %.2f Jnt[deg]:%.2f "
              "%.2f %.2f %.2f %.2f %.2f\r", time,
-             display_svo.RefTheta.t[0] * Rad2Deg,
-             display_svo.RefTheta.t[1] * Rad2Deg,
-             display_svo.RefTheta.t[2] * Rad2Deg,
-             display_svo.RefTheta.t[3] * Rad2Deg,
-             display_svo.RefTheta.t[4] * Rad2Deg,
-             display_svo.RefTheta.t[5] * Rad2Deg, 
-             display_svo.CurTheta.t[0] * Rad2Deg,
-             display_svo.CurTheta.t[1] * Rad2Deg,
-             display_svo.CurTheta.t[2] * Rad2Deg,
-             display_svo.CurTheta.t[3] * Rad2Deg,
-             display_svo.CurTheta.t[4] * Rad2Deg,
-             display_svo.CurTheta.t[5] * Rad2Deg);
+             svoLocal.RefTheta.t[0] * Rad2Deg, svoLocal.RefTheta.t[1] * Rad2Deg,
+             svoLocal.RefTheta.t[2] * Rad2Deg, svoLocal.RefTheta.t[3] * Rad2Deg,
+             svoLocal.RefTheta.t[4] * Rad2Deg, svoLocal.RefTheta.t[5] * Rad2Deg, 
+             svoLocal.CurTheta.t[0] * Rad2Deg, svoLocal.CurTheta.t[1] * Rad2Deg,
+             svoLocal.CurTheta.t[2] * Rad2Deg, svoLocal.CurTheta.t[3] * Rad2Deg,
+             svoLocal.CurTheta.t[4] * Rad2Deg,svoLocal.CurTheta.t[5] * Rad2Deg);
     }
     usleep(25000); // delay for 25 microseconds
   } while (shm_servo_inter.status_control != EXIT_C);
@@ -216,7 +211,7 @@ void display(void) {
 } // void *display_function(void *param)
 
 void interface(void) {
-  SVO interface_svo;
+  SVO svoLocal;
   int interface_counter = 0;
   int end = 1;
   int command;
@@ -254,16 +249,16 @@ void interface(void) {
     case 'P':
       printf("-----------------Now you are in JntSvoMode------------------\n");
       printf("Set the path frequency,path mode and goal joint position\n");
-      interface_svo.PosOriServoFlag = OFF;
-      ChangePathData(&interface_svo.Path);
+      svoLocal.PosOriServoFlag = OFF;
+      ChangePathData(&svoLocal.Path);
       break;
     case 's':
     case 'S':
       printf("Start\n");
-      if (interface_svo.PosOriServoFlag == ON)
-        SetPosOriSvo(&interface_svo);
+      if (svoLocal.PosOriServoFlag == ON)
+        SetPosOriSvo(&svoLocal);
       else
-        SetJntSvo(&interface_svo);
+        SetJntSvo(&svoLocal);
       break;
     case 'i':
     case 'I': // Show the information of robot
@@ -273,8 +268,8 @@ void interface(void) {
     case 'D': // Demo function
       // JntDemoFunction(&interface_svo);
       printf("---------------Now you are in PosOriServoMode!---------------\n");
-      PosOriServo(&interface_svo.PosOriServoFlag);
-      ChangeHandData(&interface_svo.Path);
+      PosOriServo(&svoLocal.PosOriServoFlag);
+      ChangeHandData(&svoLocal.Path);
       break;
     case 'e':
     case 'E':

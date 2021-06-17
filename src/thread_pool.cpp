@@ -3,7 +3,6 @@
  * *********************************************************/
 
 #include "../include/thread_pool.h"
-// #define ROBOT_OFFLINE
 
 int cnt = 0;
 float coordinate[18];
@@ -163,7 +162,7 @@ void servo_function(UrDriver *ur) {
   cnt++;
 }
 
-void *display_function(void *param) {
+void display(void) {
   int status_interface, i;
   int loop_counter = 0;
   SVO display_svo;
@@ -214,10 +213,9 @@ void *display_function(void *param) {
     usleep(25000); // delay for 25 microseconds
   } while (shm_servo_inter.status_control != EXIT_C);
   printf("\nEnd of Display Function\n");
-  return ((void *)0);
 } // void *display_function(void *param)
 
-void *interface_function(void *param) {
+void interface(void) {
   SVO interface_svo;
   int interface_counter = 0;
   int end = 1;
@@ -290,8 +288,6 @@ void *interface_function(void *param) {
     }
     interface_counter++;
   } while (end);
-  sleep(5);
   printf("End of Experiment\n");
-  return ((void *)0);
 }
 

@@ -3,7 +3,7 @@
 #define COMMON_H
 
 #define DEBUG
-//#define ROBOT_OFFLINE
+#define ROBOT_OFFLINE
 #define ON 1
 #define OFF 0
 #define INIT_C 0

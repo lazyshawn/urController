@@ -11,10 +11,6 @@
 #include "../include/ur_driver.h"
 #include "../include/thread_pool.h"
 
-#define MY_PRIORITY (49)
-#define MAX_SAFE_STACK (8 * 1024)
-// #define ROBOT_OFFLINE
-
 // 线程结束标志
 struct shm_interface shm_servo_inter;
 // 线程之间的的互斥锁-全局
@@ -23,16 +19,13 @@ pthread_mutex_t servo_inter_mutex = PTHREAD_MUTEX_INITIALIZER;
 extern SVO pSVO;
 extern pthread_mutex_t mymutex;
 
-// UR通信的条件变量
-std::condition_variable rt_ur_msg_cond, ur_msg_cond;
-// UR的IP地址(静态)
-std::string ur_ip = "10.249.181.201";
-// UR的通信端口
-unsigned int ur_post = 50007;
-
 int main(int argc, char** argv) {
-  // 线程标识符
-  pthread_t interface_thread, display_thread;
+  // UR通信的条件变量
+  std::condition_variable rt_ur_msg_cond, ur_msg_cond;
+  // UR的IP地址(静态)
+  std::string ur_ip = "10.249.181.201";
+  // UR的通信端口
+  unsigned int ur_post = 50007;
   // 系统时间
   struct timespec t;
   // Data structure to describe a process' schedulability
@@ -78,16 +71,9 @@ int main(int argc, char** argv) {
   clock_gettime(CLOCK_MONOTONIC, &t);
   t.tv_sec++;
 
-  /* start interface thread*/
-  if (pthread_create(&interface_thread, NULL, interface_function, NULL)) {
-    perror("interface_thread create\n");
-    exit(1);
-  }
-  /* start display thread*/
-  if (pthread_create(&display_thread, NULL, display_function, NULL)) {
-    perror("Display_thread create\n");
-    exit(1);
-  }
+  /* Start background thread*/
+  std::thread interface_thread(interface);
+  std::thread display_thread(display);
 
   /* Get ready */
   SaveDataReset();
@@ -117,15 +103,9 @@ int main(int argc, char** argv) {
   } // while (1)
   printf("Program end\n");
 
-  /* 结束子线程 */
-  if (pthread_join(interface_thread, NULL)) {
-    perror("pthread_join at interface_thread\n");
-    exit(1);
-  }
-  if (pthread_join(display_thread, NULL)) {
-    perror("pthread_join at display_thread\n");
-    exit(1);
-  }
+  // 等待线程结束
+  interface_thread.join();
+  display_thread.join();
 
   // 保存实验数据
   ExpDataWrite();
@@ -134,6 +114,6 @@ int main(int argc, char** argv) {
 #ifndef ROBOT_OFFLINE
   urRobot.halt();
 #endif
-  exit(1);
+  return 0;
 } // main()
 

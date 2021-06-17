@@ -14,11 +14,12 @@ Notation:
 ## ✨ Logs
 ### 210614
 > commit
-[](
-)
+[16431e8](
+https://github.com/lazyshawn/urController/commit/16431e873d1005f81c0eae4becbccf485270a1b2)
 
 日常维护。
 1. 添加修改日志。
 1. fix: 修改 Jacobian 矩阵，实现正确的角速度控制。
 1. perf: 修改文件写入函数，使用C++风格。
+1. perf: 添加离线运行功能。
 

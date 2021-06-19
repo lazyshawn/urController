@@ -11,11 +11,10 @@
 #include "../include/ur_driver.h"
 #include "../include/thread_pool.h"
 
+// Defined from dataExchange.cpp
 extern Config config;
 // 线程结束标志
 struct shm_interface shm_servo_inter;
-// 线程之间的的互斥锁-全局
-pthread_mutex_t servo_inter_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char** argv) {
   // UR通信的条件变量
@@ -31,7 +30,7 @@ int main(int argc, char** argv) {
   // 一个伺服周期内的纳秒数
   int interval = 8000000; /* 8 ms*/
   shm_servo_inter.status_control = INIT_C;
-  // 系统状态备份
+  // 线程共享变量的局部备份
   SVO svoLocal;
 
 #ifndef ROBOT_OFFLINE
@@ -42,14 +41,17 @@ int main(int argc, char** argv) {
   urRobot.setServojTime(0.008);
   sleep(1);
   urRobot.uploadProg();
+  jnt_angle = urRobot->rt_interface_->robot_state_->getQActual();
 #else
   UrDriver* urRobot;
   std::vector<double> jnt_angle = {0, -90, 90, -90, -90, 0};
   for (int i=0; i<6; ++i) {
     jnt_angle[i] *= Deg2Rad;
-    svoLocal.RefTheta.t[i] = jnt_angle[i];
   }
 #endif
+  for (int i=0; i<6; ++i) {
+    svoLocal.RefTheta[i] = svoLocal.CurTheta[i] = jnt_angle[i];
+  }
   // 同步全局变量
   config.update(&svoLocal);
 
@@ -62,8 +64,7 @@ int main(int argc, char** argv) {
     exit(-1);
   }
 
-  /* Lock memory */
-  // 防止内存交换
+  /* Lock memory | 防止内存交换 */
   if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
     perror("mlockall failed");
     exit(-2);
@@ -82,19 +83,17 @@ int main(int argc, char** argv) {
   ResetTime();
 
   while (shm_servo_inter.status_control == INIT_C) {
-    /* wait until next shot */
-    // 休眠到下个周期开始
+    /* Wait until next shot | 休眠到下个周期开始 */
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
 
-    /* 伺服线程 */
+    /* 伺服线程主程序 */
 #ifndef ROBOT_OFFLINE
     servo_function(&urRobot);
 #else
     servo_function(urRobot);
 #endif
 
-    /* calculate next shot */
-    // 设置下一个线程恢复的时间
+    /* calculate next shot | 设置下一个线程恢复的时间 */
     t.tv_nsec += interval;
 
     // 时间进位
@@ -103,8 +102,8 @@ int main(int argc, char** argv) {
       t.tv_sec++;
     }
   } // while (1)
-  printf("Program end\n");
 
+  std::cout << "Program end: servo_function." << std::endl;
   // 等待线程结束
   interface_thread.join();
   display_thread.join();

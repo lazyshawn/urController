@@ -225,5 +225,5 @@ MATRIX_D RotMat2AxisAngle(MATRIX_D rotMat) {
   }
 }
 
-MATRIX_D ur_InverseKinematics(MATRIX_D hand_p, MATRIX_D rotMat) {}
+// MATRIX_D ur_InverseKinematics(MATRIX_D hand_p, MATRIX_D rotMat) {}
 

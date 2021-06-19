@@ -28,7 +28,7 @@ int PutTrjBuff(PATH *path) {
 int GetTrjBuff(PATH *path) {
   // if the buffer is not empty
   if (PathBuff.data_num < 1) {
-    printf("Error: The path buffer is empty");
+    printf("Error: The path buffer is empty\n");
     return 1;
   } else {
     // 取出队首元素
@@ -194,23 +194,6 @@ void CalcPosRefPath(double curtime, PATH *path, POS *refpos) {
     default:
       ref[i] = CalcSinTraje(orig[i], goal[i], path->Freq, curtime);
     }
-  }
-}
-
-/* 计算Mark位置 */
-void CalcPointpos(double curtime, PATH *path, POSITION *refmarkpos) {
-  double *ref_point_pos;
-  double start[18] = {
-      0.856956, -0.0214573, 0.0256758, 0.814638, -0.0191454, 0.022805,
-      0.773164, -0.0201868, 0.0199828, 0.732798, -0.0212884, 0.0172356,
-      0.689072, -0.0226941, 0.0142593, 0.646059, -0.0249611, 0.0113292};
-  double end[18] = {0.856234,   -0.022849,  0.025623,   0.813418,   -0.0299673,
-                    0.0226936,  0.772993,   -0.0389335, 0.0199218,  0.733945,
-                    -0.0486663, 0.0172417,  0.691313,   -0.0606541, 0.0143119,
-                    0.650016,   -0.0733437, 0.0114711};
-  ref_point_pos = (double *)refmarkpos;
-  for (int i = 0; i < 18; i++) {
-    ref_point_pos[i] = Calc1JiTraje(start[i], end[i], path->Freq, curtime);
   }
 }
 

@@ -6,7 +6,7 @@
 #include "data_exchange.h"
 
 void DisplayMenu(void);
-void DisplayCurrentInformation(void);
+void DisplayCurrentInformation(SVO svoLocal);
 
 #endif
 

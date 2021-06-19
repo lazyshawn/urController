@@ -19,6 +19,13 @@ https://github.com/lazyshawn/urController/commit/52d2eea5f37744a308ff5738d7bbc8d
 
 1. `perf`: 主函数中改用 C++17 标准的线程。
 
+>commit
+[0bd979d](
+https://github.com/lazyshawn/urController/commit/0bd979d788751aaf8ec99529113fde5675558a27)
+
+1. `perf`: 构造 Config 类来替代全局变量 SVO。
+1. `perf`: 改用 std::mutex，优化线程中对全局变量的读写操作。
+
 
 ### 210614
 > commit

@@ -36,7 +36,6 @@ double CalcSinTrajeVelo(double orig, double goal, double freq, double time);
 
 void CalcJntRefPath(double curtime, PATH *path, THETA *theta, THETA *dtheta);
 void CalcPosRefPath(double curtime,PATH *path,POS*pos);
-void CalcPointpos(double curtime,PATH*path,POSITION  *refmarkpos);
 MatrixXf ComputeDistance(float *coordinate,int a,float *P,int b);
 MatrixXf ComputeRadiusVector(float *coordinate,int a,float *P,int b);
 MatrixXf ComputeGripperToObjectJacobian(MatrixXf &GripperToPoint,MatrixXf &Radius);

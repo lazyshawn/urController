@@ -38,7 +38,7 @@ void PosOriServo(int*posoriservoflag);
 void SetPosOriSvo(SVO*data);
 void SetJntSvo(SVO *data);
 
-void ExpDataSave(SVO_SAVE* data);
+void ExpDataSave(SVO* data);
 void SaveDataReset();
 void ExpDataWrite();
 

@@ -13,6 +13,7 @@
 
 // Defined from dataExchange.cpp
 extern Config config;
+extern Path_queue path_queue;
 // 线程结束标志
 struct shm_interface shm_servo_inter;
 
@@ -25,11 +26,6 @@ int main(int argc, char** argv) {
   unsigned int ur_post = 50007;
   // 系统时间
   struct timespec t;
-  // Data structure to describe a process' schedulability
-  struct sched_param param;
-  // 一个伺服周期内的纳秒数
-  int interval = 8000000; /* 8 ms*/
-  shm_servo_inter.status_control = INIT_C;
   // 线程共享变量的局部备份
   SVO svoLocal;
 
@@ -50,12 +46,15 @@ int main(int argc, char** argv) {
   }
 #endif
   for (int i=0; i<6; ++i) {
-    svoLocal.RefTheta[i] = svoLocal.CurTheta[i] = jnt_angle[i];
+    svoLocal.path.goal[i] = svoLocal.path.orig[i] = svoLocal.refTheta[i]
+      = svoLocal.curTheta[i] = jnt_angle[i];
   }
   // 同步全局变量
   config.update(&svoLocal);
 
   /* Declare ourself as a real time task */
+  // Data structure to describe a process' schedulability
+  struct sched_param param;
   // 设置线程的优先级(最大为99)
   param.sched_priority = MY_PRIORITY;
   // 设置线程的调度策略和调度参数
@@ -94,7 +93,7 @@ int main(int argc, char** argv) {
 #endif
 
     /* calculate next shot | 设置下一个线程恢复的时间 */
-    t.tv_nsec += interval;
+    t.tv_nsec += NSEC_PER_PERIOD;
 
     // 时间进位
     while (t.tv_nsec >= NSEC_PER_SEC) {
@@ -108,13 +107,13 @@ int main(int argc, char** argv) {
   interface_thread.join();
   display_thread.join();
 
-  // 保存实验数据
-  ExpDataWrite();
-
   // close UR
 #ifndef ROBOT_OFFLINE
   urRobot.halt();
 #endif
+  // 保存实验数据
+  ExpDataWrite();
+
   return 0;
 } // main()
 

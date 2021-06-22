@@ -6,10 +6,12 @@
 
 // Shared variable
 Config config;
+Path_queue path_queue;
 
-int flag_WriteData = OFF;
-int flag_SaveData = OFF;
-
+/* 
+ * @class : Config
+ * @brief : 读写全局的共享变量
+ */
 /* 读取全局共享变量到线程 */
 SVO Config::getCopy(void) {
   std::scoped_lock guard(config_mutex);
@@ -22,105 +24,125 @@ void Config::update(SVO* SVO_) {
   data = *SVO_;
 }
 
-/* 手动添加关节角路劲 */
-void ChangePathData(PATH *path) {
-  double tmp[6];
-  printf("Path frequency [1/s] = \n");
-  scanf("%lf", &path->Freq);
-  printf("PATH: SIN(0) 5JI(1) 3JI(2) 1JI(3) STEP(4)\n");
-  printf("Path mode = \n");
-  scanf("%d", &path->Mode);
-
-  for (int i = 0; i < 6; i++) {
-    printf("Angle of joint %d [deg] = \n", i + 1);
-    scanf("%lf", &tmp[i]);
-    path->Goal[i] = tmp[i] * Deg2Rad;
-  }
+/* 
+ * @class : Path_queue
+ * @brief : 用于多线程操作的路径队列
+ */
+// 添加新路径
+void Path_queue::push(PATH path) {
+  std::scoped_lock lock(path_mutex);
+  data.push_back(std::move(path));
+  path_cond.notify_one();
 }
 
-/* 手动添加末端路劲 */
-void ChangeHandData(PATH *path) {
-  printf("Path frequency [1/s] = \n");
-  scanf("%lf", &path->Freq);
+// 等待并弹出路径
+void Path_queue::wait_and_pop(PATH& path) {
+  std::unique_lock lock(path_mutex);
+  path_cond.wait(lock, [this]{return !data.empty();});
+  path = std::move(data.front());
+  data.pop_front();
+}
+
+// 尝试弹出路径
+bool Path_queue::try_pop(PATH& path) {
+  std::scoped_lock lock(path_mutex);
+  if (data.empty()) return false;
+  path = std::move(data.front());
+  data.pop_front();
+  return true;
+}
+
+bool Path_queue::try_pop(PATH& path, double time, ARRAY orig) {
+  std::scoped_lock lock(path_mutex);
+  if (data.empty()) return false;
+  path = std::move(data.front());
+  path.beginTime = time;
+  path.orig = orig;
+  data.pop_front();
+  return true;
+}
+
+// 判断路径队列是否为空
+bool Path_queue::empty() const {
+  std::scoped_lock lock(path_mutex);
+  return data.empty();
+}
+
+// 进入等待(for debug)
+void Path_queue::wait() {
+  std::unique_lock lock(path_mutex);
+  path_cond.wait(lock);
+}
+
+// 唤醒在等待的条件变量(for debug)
+void Path_queue::notify_one() {
+  std::scoped_lock lock(path_mutex);
+  path_cond.notify_one();
+}
+
+/* 
+ * @func  : add_joint_path
+ * @brief : 从键盘录入关节角的运动路径
+ * @param : path路径的引用
+ * @return: void
+ */
+void add_joint_path(PATH& path) {
+  printf("\n-----------------Now you are in JntSvoMode!-----------------\n");
+  printf("Set the path information.\n");
+  // 角度伺服标志置位
+  path.angleServo = ON;
+  // 读入角度路径信息
+  double tmp;
+  printf("Path frequency [1/s] = ");
+  scanf("%lf", &path.freq);
   printf("PATH: SIN(0) 5JI(1) 3JI(2) 1JI(3) STEP(4)\n");
   printf("Path mode = ");
-  scanf("%d", &path->Mode);
-  double tmp[6];
-  printf("Coordinates(X) of the hand[m]:\n");
-  scanf("%lf", &tmp[0]);
-  printf("Coordinates(Y) of the hand[m]:\n");
-  scanf("%lf", &tmp[1]);
-  printf("Coordinates(Z) of the hand[m]:\n");
-  scanf("%lf", &tmp[2]);
-  printf("Alpha of the hand[deg]:\n");
-  scanf("%lf", &tmp[3]);
-  printf("Beta of the hand[deg]:\n");
-  scanf("%lf", &tmp[4]);
-  printf("Gama(Z) of the hand[deg]:\n");
-  scanf("%lf", &tmp[5]);
+  scanf("%d", &path.interpMode);
   for (int i = 0; i < 6; i++) {
-    path->Goal[i] = i<3 ? tmp[i] : tmp[i]*Deg2Rad;
+    printf("Angle of joint %d [deg] = ", i+1);
+    scanf("%lf", &tmp);
+    path.goal[i] = tmp * Deg2Rad;
   }
+  printf("-------------------------------------------------------------\n");
 }
 
-void PosOriServo(int *posoriservoflag) { *posoriservoflag = ON; }
-
-void SetPosOriSvo(SVO *data) {
-  data->PosOriServoFlag = data->PosOriServoFlag;
-  data->Path = data->Path;
-
-  // initTrjBuff();
-  int ret = PutTrjBuff(&data->Path);
-  printf("ret=%d\n", ret);
-
-  if (ret == 1) {
-    printf("PathBufferPut Error\n");
-  } else {
-    printf("PutTrjBuff is OK\n");
-    printf("Goal position[m] and axis angle[deg] of the hand:\n");
-    printf("X\tY\tZ\tAlpha\tBetaY\tGama\n");
-    printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n", data->Path.Goal[0],
-           data->Path.Goal[1], data->Path.Goal[2],
-           data->Path.Goal[3] * Rad2Deg, data->Path.Goal[4] * Rad2Deg,
-           data->Path.Goal[5] * Rad2Deg);
-  }
-  printf("> OUT frequency <  %f [Hz]\n", data->Path.Freq);
-  printf("> OUT mode <  %d\n", data->Path.Mode);
-
-  data->ServoFlag = ON;
-  data->NewPathFlag = ON;
-  data->PathtailFlag = OFF;
-
-  ResetTime();
-  SetStartTime(GetCurrentTime());
-}
-
-void SetJntSvo(SVO *data) {
-  data->Path = data->Path;
-  data->Gain = data->Gain;
-
-  // initTrjBuff();
-  int ret = PutTrjBuff(&data->Path);
-  printf("ret=%d\n", ret);
-
-  if (ret == 1) //
-    printf("PathBufferPut Error\n");
-  else {
-    printf("PutTrjBuff is OK\n");
-    printf("Goal angles < %f, %f, %f, %f, %f, %f [deg]\n",
-           data->Path.Goal[0] * Rad2Deg, data->Path.Goal[1] * Rad2Deg,
-           data->Path.Goal[2] * Rad2Deg, data->Path.Goal[3] * Rad2Deg,
-           data->Path.Goal[4] * Rad2Deg, data->Path.Goal[5] * Rad2Deg);
-    printf("> OUT frequency <  %f [Hz]\n", data->Path.Freq);
-    printf("> OUT mode <  %d\n", data->Path.Mode);
-
-    data->ServoFlag = ON;
-    data->NewPathFlag = ON;
-    data->PathtailFlag = OFF;
-
-    ResetTime();
-    SetStartTime(GetCurrentTime());
-  }
+/* 
+ * @func  : add_hand_path
+ * @brief : 从键盘录入末端位姿的运动路径
+ * @param : path路径的引用
+ * @return: void
+ */
+void add_hand_path(PATH& path) {
+  double gain, temp;
+  printf("\n---------------Now you are in PosOriServoMode!---------------\n");
+  printf("Set the path information.\n");
+  // 取消角度伺服标志
+  path.angleServo = OFF;
+  // 读入路径信息
+  printf("Path duration [s] = ");
+  scanf("%lf", &temp);
+  path.freq = 1/temp;
+  gain = path.freq * path.delT;
+  // 平动位移量
+  printf("Translation velocity x of the end_link[mm]:");
+  scanf("%lf", &path.velocity[0]);
+  printf("Translation velocity y of the end_link[mm]:");
+  scanf("%lf", &path.velocity[1]);
+  printf("Translation velocity z of the end_link[mm]:");
+  scanf("%lf", &path.velocity[2]);
+  // 转动位移量
+  printf("Angular velocity around x of the end_link[deg/s]:");
+  scanf("%lf", &path.velocity[3]);
+  path.velocity[3] *= Deg2Rad;
+  printf("Angular velocity around y of the end_link[deg/s]:");
+  scanf("%lf", &path.velocity[4]);
+  path.velocity[4] *= Deg2Rad;
+  printf("Angular velocity around z of the end_link[deg/s]:");
+  scanf("%lf", &path.velocity[5]);
+  path.velocity[5] *= Deg2Rad;
+  // 归一化: 转化为一个伺服周期内的位移量
+  for (int i=0; i<6; ++i) path.velocity[i] *= gain;
+  printf("-------------------------------------------------------------\n");
 }
 
 // 保存全局变量的数组
@@ -157,43 +179,43 @@ void ExpDataWrite() {
   printf("saving data ... \n");
   for (int i = 0; i < Exp_data_index; ++i) {
     f_curpos << std::left
-      << std::setw(len) << Exp_data[i].Time
-      << std::setw(len) << Exp_data[i].CurPos[0]
-      << std::setw(len) << Exp_data[i].CurPos[1]
-      << std::setw(len) << Exp_data[i].CurPos[2]
-      << std::setw(len) << Exp_data[i].CurPos[3]*Rad2Deg
-      << std::setw(len) << Exp_data[i].CurPos[4]*Rad2Deg
-      << std::setw(len) << Exp_data[i].CurPos[5]*Rad2Deg
+      << std::setw(len) << Exp_data[i].time
+      << std::setw(len) << Exp_data[i].curPos[0]
+      << std::setw(len) << Exp_data[i].curPos[1]
+      << std::setw(len) << Exp_data[i].curPos[2]
+      << std::setw(len) << Exp_data[i].curPos[3]*Rad2Deg
+      << std::setw(len) << Exp_data[i].curPos[4]*Rad2Deg
+      << std::setw(len) << Exp_data[i].curPos[5]*Rad2Deg
       << std::endl;
 
     f_refpos << std::left
-      << std::setw(len) << Exp_data[i].Time
-      << std::setw(len) << Exp_data[i].RefPos[0]
-      << std::setw(len) << Exp_data[i].RefPos[1]
-      << std::setw(len) << Exp_data[i].RefPos[2]
-      << std::setw(len) << Exp_data[i].RefPos[3]*Rad2Deg
-      << std::setw(len) << Exp_data[i].RefPos[4]*Rad2Deg
-      << std::setw(len) << Exp_data[i].RefPos[5]*Rad2Deg
+      << std::setw(len) << Exp_data[i].time
+      << std::setw(len) << Exp_data[i].refPos[0]
+      << std::setw(len) << Exp_data[i].refPos[1]
+      << std::setw(len) << Exp_data[i].refPos[2]
+      << std::setw(len) << Exp_data[i].refPos[3]*Rad2Deg
+      << std::setw(len) << Exp_data[i].refPos[4]*Rad2Deg
+      << std::setw(len) << Exp_data[i].refPos[5]*Rad2Deg
       << std::endl;
 
     f_curtheta << std::left
-      << std::setw(len) << Exp_data[i].Time
-      << std::setw(len) << Exp_data[i].CurTheta[0]*Rad2Deg
-      << std::setw(len) << Exp_data[i].CurTheta[1]*Rad2Deg
-      << std::setw(len) << Exp_data[i].CurTheta[2]*Rad2Deg
-      << std::setw(len) << Exp_data[i].CurTheta[3]*Rad2Deg
-      << std::setw(len) << Exp_data[i].CurTheta[4]*Rad2Deg
-      << std::setw(len) << Exp_data[i].CurTheta[5]*Rad2Deg
+      << std::setw(len) << Exp_data[i].time
+      << std::setw(len) << Exp_data[i].curTheta[0]*Rad2Deg
+      << std::setw(len) << Exp_data[i].curTheta[1]*Rad2Deg
+      << std::setw(len) << Exp_data[i].curTheta[2]*Rad2Deg
+      << std::setw(len) << Exp_data[i].curTheta[3]*Rad2Deg
+      << std::setw(len) << Exp_data[i].curTheta[4]*Rad2Deg
+      << std::setw(len) << Exp_data[i].curTheta[5]*Rad2Deg
       << std::endl;
 
     f_reftheta << std::left
-      << std::setw(len) << Exp_data[i].Time
-      << std::setw(len) << Exp_data[i].RefTheta[0]*Rad2Deg
-      << std::setw(len) << Exp_data[i].RefTheta[1]*Rad2Deg
-      << std::setw(len) << Exp_data[i].RefTheta[2]*Rad2Deg
-      << std::setw(len) << Exp_data[i].RefTheta[3]*Rad2Deg
-      << std::setw(len) << Exp_data[i].RefTheta[4]*Rad2Deg
-      << std::setw(len) << Exp_data[i].RefTheta[5]*Rad2Deg
+      << std::setw(len) << Exp_data[i].time
+      << std::setw(len) << Exp_data[i].refTheta[0]*Rad2Deg
+      << std::setw(len) << Exp_data[i].refTheta[1]*Rad2Deg
+      << std::setw(len) << Exp_data[i].refTheta[2]*Rad2Deg
+      << std::setw(len) << Exp_data[i].refTheta[3]*Rad2Deg
+      << std::setw(len) << Exp_data[i].refTheta[4]*Rad2Deg
+      << std::setw(len) << Exp_data[i].refTheta[5]*Rad2Deg
       << std::endl;
   }
 

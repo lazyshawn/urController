@@ -8,31 +8,25 @@
 extern struct shm_interface shm_servo_inter;
 // Defined from dataExchange.cpp
 extern Config config;
+extern Path_queue path_queue;
 
-/* 伺服主程序 */
-void servo_function(UrDriver *ur) {
+
+/* 
+ * @func  : servo_function
+ * @brief : 伺服主程序_对路径进行插值，并发送运动指令
+ * @param : UrDriver*_机械臂驱动类的指针
+ * @return: void
+ */
+void servo_function(UrDriver* ur) {
   // Copy global SVO
   SVO svoLocal = config.getCopy();
-  PATH path;
-
-  // Matrix_D: 元素为double类型的矩阵
   MATRIX_D hnd_ori = Zeros(3, 3);
   MATRIX_D pos = MatD61(0, 0, 0, 0, 0, 0);
-  JACOBIAN* jcbn = new JACOBIAN;
-
   std::vector<double> jnt_angle(6);
   std::vector<double> jnt_angleD(6);
 
   // Get the current time
-  svoLocal.Time = GetCurrentTime();
-
-  /* Get target information */
-  // 从其他线程/进程获取目标信息
-  // memcpy(coordinate, shm_addr, 72);
-  // for (i = 0; i < 18; i++) {
-  //   servoP.markpos.t[i] = coordinate[i];
-  //   Curpos(i, 0) = coordinate[i];
-  // }
+  svoLocal.time = GetCurrentTime();
 
   /* Obtain the current state of ur */
 #ifndef ROBOT_OFFLINE
@@ -47,7 +41,7 @@ void servo_function(UrDriver *ur) {
   }
 #else
   for (int i=0; i<6; ++i) {
-    jnt_angle[i] = svoLocal.CurTheta[i] = svoLocal.RefTheta[i];
+    jnt_angle[i] = svoLocal.curTheta[i] = svoLocal.refTheta[i];
   }
 #endif
 
@@ -56,171 +50,156 @@ void servo_function(UrDriver *ur) {
   calcJnt(jnt_angle);
   // 返回末端夹持点的位置坐标
   pos = ur_kinematics(hnd_ori);
-  for (int i = 0; i < 6; i++) {
-    // Current position of the end_link
-    svoLocal.CurPos[i] = pos(i+1, 1);
-  }
+  // Current position of the end_link
+  for (int i = 0; i < 6; i++) {svoLocal.curPos[i] = pos(i+1, 1);}
 
   /* Pop path info */
-  // ************* should be noticed *************
-  if (svoLocal.NewPathFlag == ON) { // 新路径
-    if (svoLocal.PathtailFlag == OFF) {  // 路径未结束
-      int ret = GetTrjBuff(&path);
-      if (ret == 0) {
-        svoLocal.Path = path;  // 取出新的路劲信息
-        SetStartTime(svoLocal.Time);
-      } else {
-        svoLocal.PathtailFlag = ON;
-        std::cout << "svoLocal.PathtailFlag = ON" << std::endl;
-      }
-      // the case GetOffsettime > 1/servoP.path.Freq
-      svoLocal.NewPathFlag = ON;
+  if (svoLocal.path.complete) {
+    // 当前路径运行完成，且队列中没有新的路径
+    if (path_queue.empty()) {
+      config.update(&svoLocal);
+      return;
     }
-  } // if (servoP.NewPathFlag == ON)
-
-  // Set path.orig
-  if (svoLocal.NewPathFlag == ON) {
-    for (int i = 0; i < 6; i++) {
-      svoLocal.Path.Orig[i] = svoLocal.CurTheta[i];
-    }
-    svoLocal.NewPathFlag = OFF;
+    // 尝试弹出路径
+    path_queue.try_pop(svoLocal.path, svoLocal.time, svoLocal.curTheta);
   }
-  /* 计算轨迹插补点(关节角目标值) */
-  // 角度的伺服控制
-  if (svoLocal.ServoFlag == ON && svoLocal.PosOriServoFlag == OFF)
-    CalcJntRefPath(GetOffsetTime(), &svoLocal.Path, svoLocal.RefTheta,
-                   svoLocal.RefDTheta);
-  // 末端位姿的伺服控制
-  if (svoLocal.PosOriServoFlag == ON && svoLocal.ServoFlag == ON) {
-    double dt = 0.01;
-    double v = 0, w = 45*Deg2Rad;
-    double offsetTime = GetOffsetTime();
-    MATRIX_D dq = MatD61(0,0,0,0,0,0);
-    if (svoLocal.Path.Freq * offsetTime <= 1) {
-      MATRIX_D jcb = ur_jacobian(jcbn);
-      MATRIX_D dhnd = MatD61(v*svoLocal.Path.Freq*dt,0,0,w*svoLocal.Path.Freq*dt,0,0);
-      MATRIX_D ijcb(6,6, (double *)jcbn->invJcb);
-      dq = ijcb*dhnd;
-    }
+  // path_queue.wait();  // For debug: wake up by path_queue.notify_one()
 
-    double delQ[6];
-    delQ <<= dq;
-    for (int i=0; i<6; ++i) {
-      delQ[i] = (delQ[i]<1.4*Deg2Rad) ? delQ[i] : 0;
-      svoLocal.RefTheta[i] = svoLocal.CurTheta[i] + delQ[i];
-    }
-  } // if (servoP.PosOriServoFlag == ON && servoP.ServoFlag == ON)
+  /* 计算轨迹插补点(关节角目标值) */
+  calc_ref_joint(svoLocal);
+
   // Update global SVO
   config.update(&svoLocal);
 
 #ifndef ROBOT_OFFLINE
   // 机械臂执行运动指令
-  ur->servoj(svoLocal.RefTheta.t, 1);
+  for (int i=0; i<6; ++i) jnt_angle[i] = svoLocal.refTheta[i];
+  ur->servoj(jnt_angle, 1);
 #endif
   /* 记录待保存的数据 */
-  if (svoLocal.ServoFlag == ON) {
-    ExpDataSave(&svoLocal);
-  }
+  ExpDataSave(&svoLocal);
 }
 
+
+/* 
+ * @func  : display
+ * @brief : 显示线程_以一定间隔显示机械臂运行时的状态信息
+ * @param : void
+ * @return: void
+ */
 void display(void) {
   SVO svoLocal;
-
+  int printLen = 8;  // 输出数据长度 [9999.99s -999.99mm, -359.99deg]
+  // 以一定间隔显示机械臂运行时的状态信息
   while (shm_servo_inter.status_control == INIT_C) {
+    // delay for 25 microseconds
+    usleep(25000);
     svoLocal = config.getCopy();
-    
-    // 以一定间隔显示机械臂运行时的状态信息
-    if ((svoLocal.PosOriServoFlag == ON) && (svoLocal.ServoFlag == ON) &&
-        (GetOffsetTime() < (1.0 / (double)svoLocal.Path.Freq))) {
-      printf("\n");
-      printf("TIME:%0.1f\n", svoLocal.Time);
-      printf("Current position of hand:\n");
-      printf("X[m]\tY[m]\tZ[m]\tAlpha[deg]\tBeta[deg]\tGama[Deg]\n");
-      printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-             svoLocal.CurPos[0], svoLocal.CurPos[1], svoLocal.CurPos[2],
-             svoLocal.CurPos[3] * Rad2Deg, svoLocal.CurPos[4] * Rad2Deg,
-             svoLocal.CurPos[5] * Rad2Deg);
-      printf("Reference position of hand:\n");
-      printf("X[m]\tY[m]\tZ[m]\tAlpha[deg]\tBeta[deg]\tGama[Deg]\n");
-      printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-             svoLocal.RefPos[0], svoLocal.RefPos[1], svoLocal.RefPos[2],
-             svoLocal.RefPos[3] * Rad2Deg, svoLocal.RefPos[4] * Rad2Deg,
-             svoLocal.RefPos[5] * Rad2Deg);
+    // 若当前没有正在运行的路径则跳过循环
+    if (svoLocal.path.complete) continue;
+    // 固定输出格式，显示小数点后两位，左对齐
+    std::cout << setiosflags(std::ios::fixed) << std::setprecision(2)
+      << setiosflags(std::ios::right);
+    // 角度伺服模式
+    if (svoLocal.path.angleServo==ON) {
+      std::cout << "Time:" << std::setw(printLen) << svoLocal.time
+        << " | Ref[deg]: "
+        << std::setw(printLen) << svoLocal.refTheta[0] * Rad2Deg
+        << std::setw(printLen) << svoLocal.refTheta[1] * Rad2Deg
+        << std::setw(printLen) << svoLocal.refTheta[2] * Rad2Deg
+        << std::setw(printLen) << svoLocal.refTheta[3] * Rad2Deg
+        << std::setw(printLen) << svoLocal.refTheta[4] * Rad2Deg
+        << std::setw(printLen) << svoLocal.refTheta[5] * Rad2Deg
+        << " | Cur[deg]: "
+        << std::setw(printLen) << svoLocal.curTheta[0] * Rad2Deg
+        << std::setw(printLen) << svoLocal.curTheta[1] * Rad2Deg
+        << std::setw(printLen) << svoLocal.curTheta[2] * Rad2Deg
+        << std::setw(printLen) << svoLocal.curTheta[3] * Rad2Deg
+        << std::setw(printLen) << svoLocal.curTheta[4] * Rad2Deg
+        << std::setw(printLen) << svoLocal.curTheta[5] * Rad2Deg
+        << std::endl;
+      // printf("T:%6.2f | Ref[deg]: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f | "
+      //     "Jnt[deg]: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f\n", svoLocal.time,
+      //     svoLocal.refTheta[0] * Rad2Deg, svoLocal.refTheta[1] * Rad2Deg,
+      //     svoLocal.refTheta[2] * Rad2Deg, svoLocal.refTheta[3] * Rad2Deg,
+      //     svoLocal.refTheta[4] * Rad2Deg, svoLocal.refTheta[5] * Rad2Deg,
+      //     svoLocal.curTheta[0] * Rad2Deg, svoLocal.curTheta[1] * Rad2Deg,
+      //     svoLocal.curTheta[2] * Rad2Deg, svoLocal.curTheta[3] * Rad2Deg,
+      //     svoLocal.curTheta[4] * Rad2Deg, svoLocal.curTheta[5] * Rad2Deg);
+    } else {
+    // 当前有路径在运行, 且为速度伺服模式
+      std::cout << "Time:" << std::setw(printLen) << svoLocal.time
+        << "\nCurrent position of the end_link\n"
+        << "   X[mm]   Y[mm]   Z[mm]  Alpha[deg]   Beta[deg]   Gama[deg]\n"
+        << std::setw(printLen) << svoLocal.curPos[0]
+        << std::setw(printLen) << svoLocal.curPos[1]
+        << std::setw(printLen) << svoLocal.curPos[2] << "    "
+        << std::setw(printLen) << svoLocal.curPos[3] * Rad2Deg << "    "
+        << std::setw(printLen) << svoLocal.curPos[4] * Rad2Deg << "    "
+        << std::setw(printLen) << svoLocal.curPos[5] * Rad2Deg
+        << "\nReference position of the end_link\n"
+        << "   X[mm]   Y[mm]   Z[mm]  Alpha[deg]   Beta[deg]   Gama[deg]\n"
+        << std::setw(printLen) << svoLocal.refPos[0]
+        << std::setw(printLen) << svoLocal.refPos[1]
+        << std::setw(printLen) << svoLocal.refPos[2] << "    "
+        << std::setw(printLen) << svoLocal.refPos[3] * Rad2Deg << "    "
+        << std::setw(printLen) << svoLocal.refPos[4] * Rad2Deg << "    "
+        << std::setw(printLen) << svoLocal.refPos[5] * Rad2Deg
+        << std::endl;
+      // printf("TIME:%0.1f\n", svoLocal.time);
+      // printf("Current position of hand:\n");
+      // printf("X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[Deg]\n");
+      // printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
+      //     svoLocal.curPos[0], svoLocal.curPos[1], svoLocal.curPos[2],
+      //     svoLocal.curPos[3] * Rad2Deg, svoLocal.curPos[4] * Rad2Deg,
+      //     svoLocal.curPos[5] * Rad2Deg);
+      // printf("Reference position of hand:\n");
+      // printf("X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[Deg]\n");
+      // printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
+      //     svoLocal.refPos[0], svoLocal.refPos[1], svoLocal.refPos[2],
+      //     svoLocal.refPos[3] * Rad2Deg, svoLocal.refPos[4] * Rad2Deg,
+      //     svoLocal.refPos[5] * Rad2Deg);
     }
-    if ((svoLocal.PosOriServoFlag == OFF) && (svoLocal.ServoFlag == ON) &&
-        (GetOffsetTime() < (1.0 / (double)svoLocal.Path.Freq))) {
-      printf("\n");
-      printf("T: %.2f Ref[deg]: %.2f %.2f %.2f %.2f %.2f %.2f Jnt[deg]:%.2f "
-             "%.2f %.2f %.2f %.2f %.2f\r", svoLocal.Time,
-             svoLocal.RefTheta[0] * Rad2Deg, svoLocal.RefTheta[1] * Rad2Deg,
-             svoLocal.RefTheta[2] * Rad2Deg, svoLocal.RefTheta[3] * Rad2Deg,
-             svoLocal.RefTheta[4] * Rad2Deg, svoLocal.RefTheta[5] * Rad2Deg,
-             svoLocal.CurTheta[0] * Rad2Deg, svoLocal.CurTheta[1] * Rad2Deg,
-             svoLocal.CurTheta[2] * Rad2Deg, svoLocal.CurTheta[3] * Rad2Deg,
-             svoLocal.CurTheta[4] * Rad2Deg, svoLocal.CurTheta[5] * Rad2Deg);
-    }
-    usleep(25000); // delay for 25 microseconds
   } // while (shm_servo_inter.status_control == INIT_C)
-
   std::cout << "Program end: interface_function." << std::endl;
 } // void display(void)
 
+
+/* 
+ * @func  : interface
+ * @brief : GUI界面_处理人机交互
+ * @param : void
+ * @return: void
+ */
 void interface(void) {
   SVO svoLocal = config.getCopy();
+  PATH pathLocal;
   char command;
-  MATRIX_D hndPos = MatD61(0, 0, 0, 0, 0, 0);
-  MATRIX_D hndOri = Zeros(3, 3);
 
-  printf("Executing interface function\n");
-  DisplayMenu();
-
+  display_menu();
   while (shm_servo_inter.status_control == INIT_C) {
-    svoLocal = config.getCopy();
-
     // Wait command
-    printf("Please hit any key\n");
+    std::cout << "Please press any key" << std::endl;
     std::cin >> command;
+    svoLocal = config.getCopy();
     // Run command
     switch (command) {
-    case 'c': case 'C':
-      //求出的结果是末端的位置Matrix61
-      hndPos = ur_kinematics(hndOri);
-      printf("Current position of hand:\n");
-      printf("POS::%.2f[mm],%.2f[mm],%.2f[mm],%.2f[deg], %.2f[deg], %.2f[deg]\n",
-             hndPos(1, 1), hndPos(2, 1), hndPos(3, 1), hndPos(4, 1) * Rad2Deg,
-             hndPos(5, 1) * Rad2Deg, hndPos(6, 1) * Rad2Deg);
-      break;
-    case 'g': case 'G':// gain setting
-      // ChangeGain(&interface_svo.Gain);
-      break;
-    case 'p': case 'P':// joint reference setting
-      printf("-----------------Now you are in JntSvoMode------------------\n");
-      printf("Set the path frequency,path mode and goal joint position\n");
-      svoLocal.PosOriServoFlag = OFF;
-      ChangePathData(&svoLocal.Path);
-      break;
-    case 's': case 'S':
-      printf("Start\n");
-      if (svoLocal.PosOriServoFlag == ON) {
-        SetPosOriSvo(&svoLocal);
-      } else {
-        SetJntSvo(&svoLocal);
-      }
-      svoLocal.ServoFlag = ON;
-      break;
+    // hand reference setting
+    case 'c': case 'C': add_hand_path(pathLocal); break;
+    // joint reference setting
+    case 'j': case 'J': add_joint_path(pathLocal); break;
+    // Start
+    case 's': case 'S': path_queue.push(pathLocal); break;
     // Show the information of robot
-    case 'i': case 'I': DisplayCurrentInformation(svoLocal); break;
-    // Demo function
-    case 'd': case 'D':
-      printf("---------------Now you are in PosOriServoMode!---------------\n");
-      // PosOriServo(&svoLocal.PosOriServoFlag);
-      svoLocal.PosOriServoFlag = ON;
-      ChangeHandData(&svoLocal.Path);
-      break;
+    case 'i': case 'I': display_current_information(svoLocal); break;
+    // Exit
     case 'e': case 'E': shm_servo_inter.status_control = EXIT_C; break;
     // Show menu
-    case 'm': case 'M': DisplayMenu(); break;
-    default: printf("Unknow command.\n"); break;
+    case 'm': case 'M': display_menu(); break;
+    // Next shot. Set for debug.
+    case 'n': case 'N': path_queue.notify_one(); break;
+    // Invalid command
+    default: std::cout << "==>> Unknow command." << std::endl; break;
     }
     config.update(&svoLocal);
   } // while (shm_servo_inter.status_control == INIT_C)

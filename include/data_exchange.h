@@ -8,35 +8,49 @@
 #define DATA_EXCHANGE_H
 
 #include "common.h"
-#include "trajectory.h"
-#include "system_time.h"
 // 文件读写
 #include <fstream>
 #include <iostream>
 #include <iomanip>
 // Mutural exclusion
 #include <mutex>
+#include <condition_variable>
+// std::deque
+#include <deque>
 
 class Config {
-public:
-  SVO getCopy(void);
-  void update(SVO* SVO_);
-
 private:
-  std::mutex config_mutex;
   SVO data;
+  std::mutex config_mutex;
+  std::condition_variable config_cond;
+
+public:
+  // 复制 Config
+  SVO getCopy(void);
+  // 更新 Config
+  void update(SVO* SVO_);
 };
 
-void SvoReadFromServo(SVO *data);
-void SvoWriteFromServo(SVO *data);
-void SvoReadFromGui(SVO *data);
-void SvoWriteFromGui(SVO *data);
-void SvoReadFromDis(SVO *data);
-void ChangePathData(PATH*path);
-void ChangeHandData(PATH*path);
-void PosOriServo(int*posoriservoflag);
-void SetPosOriSvo(SVO*data);
-void SetJntSvo(SVO *data);
+class Path_queue {
+private:
+  std::deque<PATH> data;
+  mutable std::mutex path_mutex;
+  std::condition_variable path_cond;
+
+public:
+  Path_queue(){};
+  void push(PATH path);
+  void wait_and_pop(PATH& path);
+  bool try_pop(PATH& path);
+  bool try_pop(PATH& path, double time, ARRAY orig);
+  bool empty() const;
+  // for debug
+  void wait();
+  void notify_one();
+};
+
+void add_hand_path(PATH& path);
+void add_joint_path(PATH& path);
 
 void ExpDataSave(SVO* data);
 void SaveDataReset();

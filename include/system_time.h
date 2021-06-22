@@ -4,8 +4,7 @@
 
 #include <ctime>
 #include <cstdio>
-
-#define NSEC_PER_SEC (1000000000)
+#include "common.h"
 
 double GetCurrentTime();
 void ResetTime();

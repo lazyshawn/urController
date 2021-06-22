@@ -2,60 +2,86 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <array>
+#include <cmath>
+
 #define DEBUG
 #define ROBOT_OFFLINE
 #define ON 1
 #define OFF 0
 #define INIT_C 0
 #define EXIT_C 255
+// 实验数据的最大保存数
 #define EXP_DATA_LENGTH 10000
 #define EXP_DATA_INTERVAL 1
 #define Rad2Deg 180.0 / M_PI
 #define Deg2Rad M_PI / 180.0
+// 一秒内的纳秒数
+#define NSEC_PER_SEC (1000000000) /* 1 s */
+// 一个伺服周期内的纳秒数
+#define NSEC_PER_PERIOD (8000000) /* 8 ms */
 
 struct shm_interface {
+  shm_interface() {
+    status_control = INIT_C;
+  }
   int status_print;
   int status_control;
 };
-typedef double THETA;
-typedef double POS;
-typedef double FORCE;
-typedef struct {
-  double Orig[6];  // 轨迹起点
-  double Goal[6];  // 轨迹终点
-  double Freq;     // 单位时间运动的比例 (1/T)
-  int Mode;        // 插补模式
-} PATH;
+
 // PID 控制参数
-typedef struct {
+struct GAIN {
   double K_vt[6];
   double K_pt[6];
   double K_it[6];
-} GAIN;
-typedef struct {
+};
+
+struct JACOBIAN {
   double Jcb[6][6];
   double TrnsJcb[6][6];
   double invJcb[6][6];
-} JACOBIAN;
-// 全局的线程共享结构体
-typedef struct {
-  int PosOriServoFlag;             // 位姿伺服标志
-  int SamplingFreq;
-  double SamplingTime;
-  double Time;                     // 当前时间
-  int ServoFlag;                   // 伺服控制开始的标志
-  int NewPathFlag;                 // 取出新路径标志
-  int PathtailFlag;                // 路劲完成标志
-  THETA CurTheta[6];                  // 机械臂关节角(deg)
-  THETA CurDTheta[6];                 // 机械臂关节角(rad)
-  THETA RefTheta[6];                  // 目标关节角(deg)
-  THETA RefDTheta[6];
-  POS CurPos[6];
-  POS RefPos[6];
-  FORCE CurForce[6];
-  GAIN Gain;
-  PATH Path;                      // 正在进行的路径
-} SVO;
+};
+
+// 六维数组
+typedef std::array<double,6> ARRAY;
+// 关节角_6
+typedef std::array<double,6> THETA;
+// 位姿: 位置_3 + 姿态_4
+typedef std::array<double,7> POS;
+
+// 路径
+struct PATH {
+  PATH () {
+    angleServo = true;
+    complete = false;
+    delT = (double)NSEC_PER_PERIOD / (double)NSEC_PER_SEC;
+    velocity = {0,0,0,0,0,0};
+  }
+
+  double beginTime; // 开始时间
+  double freq;       // 插补频率: 总时间的倒数
+  bool angleServo;  // 角度伺服标志
+  bool complete;     // 轨迹完成标志
+  int interpMode;   // 插补模式
+  ARRAY orig;        // 插值起点(角度伺服) [mm]
+  ARRAY goal;        // 插值终点(角度伺服) [mm]
+  ARRAY velocity;    // 速度命令(位姿伺服) [mm/s, rad/s]
+  double delT;       // 伺服周期时间
+};
+
+// 全局的线程共享结构体: 系统状态
+struct SVO {
+  SVO () {
+    path.complete = true;
+  }
+
+  double time;
+  PATH path;
+  THETA curTheta;
+  THETA refTheta;
+  POS curPos;
+  POS refPos;
+};
 
 #endif
 

@@ -12,14 +12,39 @@ Notation:
 <!-- The format is based on Keep a [Changelog](https://keepachangelog.com/en/1.0.0/). -->
 
 ## ✨ Logs
+### 210622
+> commit
+[](
+)
+
+1. `fix`: 修复了路径运行完成后角度会跳跃到 0 的问题。
+1. `perf`: 优化多线程结构。修改路径(PATH), 系统状态的共享变量(SVO)等数据结构，
+使用 `std::array` 描述定长数组。
+1. `perf`: 路径队列添加用于 「debug」 的方法，控制伺服周期的暂停和继续。
+1. `perf`: 优化 `trajectory` 中插值代码的逻辑，删除了多余函数，简化伺服线程代码。
+1. `perf`: 修改部分变量及函数的名称。变量: 小驼峰法。函数: 下划线连接。
+1. `chore`: 修改交互菜单。
+
+**Todos**:
+* [ ] 在上层代码中使用 `std::cout` 替换 `printf`。
+* [ ] 新增结构化的输出提示。
+* [ ] 集成 Robotic-Q 夹爪。
+
+### 210619
+> commit
+[9cd6417](
+https://github.com/lazyshawn/urController/commit/9cd6417bd73d3e3f7da3dcd3176fc190c40845fa)
+
+1. `chore`: 删除了多余的数据结构。
+
 ### 210617
->commit
+> commit
 [52d2eea](
 https://github.com/lazyshawn/urController/commit/52d2eea5f37744a308ff5738d7bbc8db7ee1be41)
 
 1. `perf`: 主函数中改用 C++17 标准的线程。
 
->commit
+> commit
 [0bd979d](
 https://github.com/lazyshawn/urController/commit/0bd979d788751aaf8ec99529113fde5675558a27)
 

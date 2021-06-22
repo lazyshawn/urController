@@ -5,8 +5,8 @@
 #include "common.h"
 #include "data_exchange.h"
 
-void DisplayMenu(void);
-void DisplayCurrentInformation(SVO svoLocal);
+void display_menu(void);
+void display_current_information(SVO svoLocal);
 
 #endif
 

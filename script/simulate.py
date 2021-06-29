@@ -91,6 +91,51 @@ def ur_kinematics(q):
 
   return Tran
 
+# 逆运动学
+def inv_kinematics(Tran, q):
+    global d1, a3, a4, d4, d5, d6
+    q_jnt = np.zeros(6)
+    nx = Tran[0][0]; ox = Tran[0][1]; ax = Tran[0][2]; px = Tran[0][3]
+    ny = Tran[1][0]; oy = Tran[1][1]; ay = Tran[1][2]; py = Tran[1][3]
+    nz = Tran[2][0]; oz = Tran[2][1]; az = Tran[2][2]; pz = Tran[2][3]
+    # 关节角1 (t15_24)
+    A1 = py - ay*d6; B1 = -px + ax*d6
+    temp1 = math.atan2(d4,(A1*A1+B1*B1-d4*d4)**(1/2)) - math.atan2(A1,B1)
+    temp2 = math.atan2(d4,-(A1*A1+B1*B1-d4*d4)**(1/2)) - math.atan2(A1,B1)
+    q_jnt[0] = temp1 if abs(temp1-q[0])<abs(temp2-q[0]) else temp2
+    s1 = math.sin(q_jnt[0]); c1 = math.cos(q_jnt[0])
+    # 关节角5 (t15_22)
+    temp1 = math.acos(-ax*s1+ay*c1)
+    temp2 = -math.acos(-ax*s1+ay*c1)
+    q_jnt[4] = temp1 if abs(temp1-q[4])<abs(temp2-q[4]) else temp2
+    s5 = math.sin(q_jnt[4])
+    # 关节角6 (t15_21)
+    A6 = ny*c1-nx*s1; B6 = -oy*c1+ox*s1
+    q_jnt[5] = math.atan2(-s5,0) - math.atan2(A6,B6)
+    #  q_jnt[5] = math.atan2(-B6/s5,-A6/s5)
+    s6 = math.sin(q_jnt[5]); c6 = math.cos(q_jnt[5])
+    # 关节角3 (t14_14, t14_34)
+    A3 = px*c1 +py*s1 -d5*(nx*c1*s6+ox*c1*c6+ny*s1*s6+oy*s1*c6) -d6*(ay*s1+ax*c1)
+    B3 = pz -d1 -az*d6 -d5*(oz*c6+nz*s6)
+    temp1 = math.acos((A3*A3+B3*B3-a3*a3-a4*a4)/(2*a3*a4))
+    temp2 = -math.acos((A3*A3+B3*B3-a3*a3-a4*a4)/(2*a3*a4))
+    q_jnt[2] = temp1 if abs(temp1-q[2])<abs(temp2-q[2]) else temp2
+    s3 = math.sin(q_jnt[2]); c3 = math.cos(q_jnt[2])
+    # 关节角2 (t14_14, t14_34)
+    A2 = -(a4*a4 +2*a3*a4*c3 +a3*a3)
+    B2 = -(a4*c3+a3)*A3 +a4*s3*B3
+    C2 = (a4*c3+a3)*B3 +a4*s3*A3
+    q_jnt[1] = math.atan2(C2/A2, B2/A2)
+    # 关节角4 (t15_13, t15_33)
+    A4 = -(oz*c6 + nz*s6)
+    B4 = -c6*(ox*c1+oy*s1) -s6*(nx*c1+ny*s1)
+    q_jnt[3] = math.atan2(B4, A4) - q_jnt[1] - q_jnt[2]
+    if (q_jnt[3] > math.pi):
+        q_jnt[3] = q_jnt[3] -2*math.pi
+    elif (q_jnt[3] < -math.pi):
+        q_jnt[3] = q_jnt[3] +2*math.pi
+    return q_jnt
+
 def ur_jacobian(q):
   global jcb, tjcb, ijcb
 
@@ -125,7 +170,7 @@ T  = 20000  # 运行时间 (ms)
 w  = 30*d2r # 角速度 (rad/s)
 v  = 0      # 线速度 (mm/s)
 nn = int(T/dt+1) # 采样点数
-q0 = np.array([0, -90, 90, -90, -90, 0]).reshape((6,1))*d2r  # 初始关节角
+q0 = np.array([-10, 20, -30, 40, -50, 60]).reshape((6,1))*d2r  # 初始关节角
 pos = np.zeros((3,nn))
 q_jnt = np.zeros((6,nn))
 dx = np.array([v/(T/dt), 0, 0, w/(T/dt), 0, 0]).reshape((6,1))  # 每个周期的状态变化
@@ -142,6 +187,11 @@ for tt in time:
   q = q + dq
   q_jnt[:,[i]] = q
 
+qq = inv_kinematics(Tran, q)
+print("\n")
+print(qq)
+ur_kinematics(qq)
+print(Tran)
 
 ####################################################################
 # 创建图框
@@ -256,5 +306,6 @@ ax3.legend(loc='best')
 # make sure that the plots fit nicely in your figure
 plt.tight_layout()
 #  plt.savefig('../foo.svg')
-plt.show()
+#  plt.show()
+
 

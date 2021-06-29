@@ -1,7 +1,8 @@
 1. [UR5 configuration](#✨-ur5-configuration)
 1. [Jacobian of UR5](#✨-jacobian-of-ur5)
+1. [Inverse kinematics](#✨-inverse-kinematics)
 1. [Appendix A. ur\_kinematics.m](#✨-appendix-a.-ur_kinematics.m)
-1. [Appendix B. ur\_simulate.m]()
+1. [Appendix B. ur\_simulate.m](#✨-appendix-b.-ur_simulate.m)
 
 ## ✨ UR5 configuration
 ![ur5-configuration](./pics/UR5-Configuration.svg)
@@ -17,6 +18,15 @@ Link parameters of the UR5 (**Modified DH**).
 | 5   | $-\pi/2$       | 0         | 94.65  |            |
 | 6   | $\pi/2$        | 0         | 82.3   |            |
 
+改进 DH 坐标法的齐次变换矩阵为: 
+$$
+^{i-1}_iT = \left[ {\begin{array}{cccc}
+c\theta_i & -s\theta_i & 0 & a_{i-1} \\
+s\theta_ic\alpha_{i-1} & c\theta_ic\alpha_{i-1} & -s\alpha_{i-1} & -s\alpha_{i-1}d_i \\
+s\theta_is\alpha_{i-1} & c\theta_is\alpha_{i-1} & c\alpha_{i-1} & c\alpha_{i-1}d_i \\
+0 & 0 & 0 & 1
+\end{array}} \right]
+$$
 
 ## ✨ Jacobian of UR5
 ### 位置分量
@@ -76,6 +86,26 @@ d_6( - {c_1}{s_5} + {s_1}{c_{234}}{c_5})\\
 $$
 
 ### 姿态分量
+与关节 6 固联的坐标系的角速度为:
+$$
+^0_6\omega = \left[ {\begin{array}{c}
+-s1(\dot\theta_2+\dot\theta_3+\dot\theta_4) -c_1s_{234}\dot\theta_5 +(-s_1c_5+c_1c_{234}s_5)\dot\theta_6 \\
+c1(\dot\theta_2+\dot\theta_3+\dot\theta_4) -s_1s_{234}\dot\theta_5 +(c_1c_5+s_1c_{234}s_5)\dot\theta_6 \\
+\dot\theta_1 -c_{234}\dot\theta_5 -s_{234}s_5\dot\theta_6
+\end{array}} \right]
+$$
+
+由 $\dot q = J_\omega{^0_6\omega}$ 得，
+$[q_x, q_y, q_z]^T$ 对应的 Jacobian 矩阵分量的各列为各关节角的方向向量，即:
+$$
+J_\omega = \left[ {\begin{array}{cc}
+0 & { - {s_1}} & -s_1 & -s_1 & -c_1{s_{234}} &  - {s_1}{c_5} + {c_1}{c_{234}}{s_5} \\
+0 & {{c_1}}    & c_1  & c_1  & -s_1{s_{234}} & {c_1}{c_5} + {s_1}{c_{234}}{s_5}    \\   
+1 & 0          & 0    & 0    & -c_{234}      &  - {s_{234}}{s_5}                  
+\end{array}} \right]
+$$
+
+**四元数法:**(貌似不行)
 同理，末端相对于基坐标系的姿态为
 $$
 {}_6^0R = \left[ {\begin{array}{ccc}
@@ -128,18 +158,161 @@ $$
 | $\theta_5$ | $s_1c_5c_6-c_1c_{234}s_5c_6$                | $c_1c_5s_6+s_1c_{234}s_5s_6$ |     $-s_{234}c_5$ |
 | $\theta_6$ | $-s_1s_5s_6-c_1c_{234}c_5s_6-c_1s_{234}c_6$ | $c_1s_5c_6-s_1c_{234}c_5c_6+s_1s_{234}s_6$ | $0$ |
 
-由 $\dot q = J_\omega {\dot \theta}$ 得，
-$[q_x, q_y, q_z]^T$ 对应的 Jacobian 矩阵分量的各列为各关节角的方向向量，即:
+
+## ✨ Inverse kinematics
+已知 $^0_6T$ 求 $\theta_i$[^invKinematics]。记:
 $$
-J_\omega = \left[ {\begin{array}{cc}
-0 & { - {s_1}} & -s_1 & -s_1 & -c_1{s_{234}} &  - {s_1}{c_5} + {c_1}{c_{234}}{s_5} \\
-0 & {{c_1}}    & c_1  & c_1  & -s_1{s_{234}} & {c_1}{c_5} + {s_1}{c_{234}}{s_5}    \\   
-1 & 0          & 0    & 0    & -c_{234}      &  - {s_{234}}{s_5}                  
+^0_6T = \left[ {\begin{array}{cccc}
+nx & ox & ax & px \\
+ny & oy & ay & py \\
+nz & oz & az & pz \\
+0 & 0 & 0 & 1
 \end{array}} \right]
 $$
 
+若已知$Acos\theta + Bsin\theta = d$ 则由辅助角公式和 atan2 函数可以求解$\theta$:
+$$
+\theta = {\rm atan2}(d,\pm\sqrt{A^2+B^2-d^2}) - {\rm atan2}(A,B)
+$$
 
-[^quaternion]: Tomas K.M, Eric H, Naty H. Real Time Rendering 4th Edition, p80-p81, 2008.
+### 求关节角 1, 5, 6
+齐次矩阵 $^1_5T$ 分别可以表示为:
+$$
+{^0_1T^{-1}}^0_6T{^5_6T^{-1}} = {^1_2T}{^2_3T}{^3_4T}{^4_5T}
+$$
+分别计算等式左右两边，得
+$$
+{^0_1T^{-1}}^0_6T{^5_6T^{-1}} = \left[ {\begin{array}{cccc}
+c_6(n_xc_1+n_ys_1)-s_6(o_xc_1+o_ys_1) & -a_xc_1-a_ys_1 &
+c_6(o_xc_1+o_ys_1)+s_6(n_xc_1+n_ys_1) & p_xc_1+p_ys_1-d_6(a_ys_1+a_xc_1) \\
+c_6(n_yc_1-n_xs_1)+s_6(o_xs_1-o_yc_1) & a_xs_1-a_yc_1
+& c_6(o_yc_1-o_xs_1)-s_6(n_xs_1-n_yc_1) & pyc_1-p_xs_1+d_6(a_xs_1-a_yc_1) \\
+n_zc_6-o_zs_6 & -a_z
+& o_zc_6+n_zs_6 & pz-d_1-a_zd_6 \\
+0 & 0 & 0 & 1
+\end{array}} \right]
+$$
+
+$$
+{^1_2T}{^2_3T}{^3_4T}{^4_5T} = \left[ {\begin{array}{cccc}
+c_{234}c_5  & -c_{234}s_5 & -s_{234} & a_4c_{23}+a_3c_2-d_5s_{234} \\
+-s_5        & -c_5        & 0        & d_4 \\
+-s_{234}c_5 & s_{234}s_5  & -c_{234} & -a_4s_{23}-a_3s_2-d_5c_{234} \\
+0 & 0 & 0 & 1
+\end{array}} \right]
+$$
+
+#### 关节角 1
+由 $^1_5t_{24}$ 对应相等可以计算出 $\theta_1$
+$$
+(p_y-a_yd_6)c_1 + (-p_x+a_xd_6)s_1 = d_4
+$$
+记 $A_1 = p_y-a_yd_6, B_1 = -p_x+a_xd_6$ 则:
+$$
+\theta_1 = {\rm atan2}(d4,\pm\sqrt{A_1^2+B_1^2-d_4^2}) - {\rm atan2}(A_1,B_1)
+$$
+其中$A_1^2 + B_1^2 - d_4^2 \geq 0$ 。
+
+#### 关节角 5
+由 $^1_5t_{22}$ 对应相等可以计算出 $\theta_5$
+$$ a_xs_1 - a_yc_1 = -c_5$$
+$$ \theta_5 = {\pm\rm acos}(a_xs_1-a_yc_1) $$
+其中$-1 \leq a_xs_1 - a_yc_1 \leq 1$ 。
+
+#### 关节角 6
+由 $^1_5t_{24}$ 对应相等可以计算出 $\theta_1$
+$$
+(n_yc_1-n_xs_1)c_6 + (-o_yc-1+o_xs_1)c_6 = -s_5
+$$
+记 $A_6 = n_yc_1-n_xs_1, B_6 = -o_yc_1+o_xs_1$ 则:
+$$
+\begin{array}{rl}
+\theta_6 =& {\rm atan2}(-s5,0) - {\rm atan2}(A6,B6) \\
+=& {\rm atan2}(-B6/s5,-A6/s5)
+\end{array}
+$$
+其中$s_5 \neq 0$ 。
+
+### 求关节角 2, 3, 4
+齐次矩阵 $^1_4T$ 分别可以表示为:
+$$
+{^0_1T^{-1}}^0_6T{^5_6T^{-1}}{^4_5T^{-1}} = {^1_2T}{^2_3T}{^3_4T}
+$$
+分别计算等式左右两边，得
+$$
+{^0_1T^{-1}}^0_6T{^5_6T^{-1}}{^4_5T^{-1}} = \left[ {\begin{array}{cccc}
+(a_xc_1+a_ys_1)s_5+(n_xc_1c_6+n_ys_1c_6-o_xc_1s_6-o_ys_1s_6)c_5 &
+(o_xc_1+o_ys_1)c_6+(n_xc_1+n_ys_1)s_6 &
+(a_xc_1+a_ys_1)c_5+(o_xc_1s_6+o_ys_1s_6-n_xc_1c_6-n_ys_1c_6)s_5 &
+p_xc_1+p_ys_1-d_6(a_ys_1+a_xc_1) -d_5(o_xc_1c_6+n_xc_1s_6+o_ys_1c_6+n_ys_1s_6) \\
+(a_yc_1-a_xs_1)s_5+(n_yc_1c_6-n_xs_1c_6+o_xs_1s_6-o_yc_1s_6)c_5 &
+(o_yc_1-o_xs_1)c_6 + (n_yc_1-n_xs_1)s_6 & 
+(a_yc_1-a_xs_1)c_5 -(n_yc_1c_6-n_xs_1c_6+o_xs_1s_6-o_yc_1s_6)s_5 &
+pyc_1-p_xs_1+d_6(a_xs_1-a_yc_1) +d_5(n_xs_1s_6+o_xs_1c_6-n_yc_1s_6-o_yc_1c_6)\\
+a_zs_5 + (n_zc_6-o_zs_6)c_5 & o_zc_6+n_zs_6 &
+a_zc_5+(-n_zc_6+o_zs_6)s_5 & pz-d_1-a_zd_6-d_5(o_zc_6+n_zs_6) \\
+0 & 0 & 0 & 1
+\end{array}} \right]
+$$
+
+$$
+{^1_2T}{^2_3T}{^3_4T} = \left[ {\begin{array}{cccc}
+c_{234}  & -s_{234} & 0 & a_4c_{23}+a_3c_2 \\
+0        & 0        & 1 & d_4 \\
+-s_{234} & -c_{234} & 0 & -a_4s_{23}-a_3s_2 \\
+0 & 0 & 0 & 1
+\end{array}} \right]
+$$
+
+#### 关节角 3
+由 $^1_4t_{14}$ 和 $^1_4t_{34}$ 对应相等得: 
+$$
+\begin{array}{rl}
+a_4c_{23} + a_3c_2 = A3 \\
+-a_4s_{23} -a_3s_2 = B3
+\end{array}
+$$
+两式平方并相加得:
+$$
+\begin{array}{rl}
+a_4^2 + a_3^2 + 2a_3a_4c_3 &= A_3^2 + B_3^2 \\
+\theta_3 &= {\rm\pm acos}\frac{A_3^2+B_3^2-a_3^2-a_4^2}{2a_3a_4}
+\end{array}
+$$
+其中 $A_3^2+A_4^2\leq (a_2+a_3)^2$ 。
+
+#### 关节角 2
+将 $^1_4t_{14}$ 和 $^1_4t_{34}$ 对应相等的等式展开，得:
+$$
+\begin{array}{rl}
+(a_4c_3+a_3)c_2 - a_4s_3s_2 = A3 \\
+-a_4s_3c_2 - (a_4c_3+a_3)s_2 = B3
+\end{array}
+$$
+记 $A_2 = -(a_4^2 +2a_3a_4c_3 +a_3^2)$, $B_2 = -(a_4c_3+a_3)A_3 +a_4s_3B_3$,
+$C_2 = (a_4c_3+a_3)B_3 +a_4s_3A_3$, 则
+$$
+\theta_2 = {\rm atan2}(C_2/A_2, B_2/A_2)
+$$
+
+#### 关节角 4
+由 $^1_5t_{22}$ 和 $^1_5t_{32}$ 对应相等得: 
+$$
+\begin{array}{l}
+c_{234} = -(o_zc_6 + n_zs_6) \\
+s_{234} = -c_6(o_xc_1+o_ys_1) -s_6(n_xc_1+n_ys_1)
+\end{array}
+$$
+记 $A4 = -(o_zc_6 + n_zs_6)$, $B4 = -c_6(o_xc_1+o_ys_1) -s_6(n_xc_1+n_ys_1)$, 则
+$$
+\theta_4 = {\rm atan2}(B4, A4) - \theta_2 - \theta_3
+$$
+
+### 奇异性分析
+1. 肩关节奇异。$A_1^2+B_1^2-d_4^2 = 0$，此时末端关节(end-link)参考点 $O_6$ 位于
+轴线 Z1 和 Z2 构成的平面内，关节 1 无法求解。
+1. 肘关节奇异。$A_3^2+A_4^2=(a_2+a_3)^2$，此时关节 2 无法求解。
+1. 腕关节奇异。$s_5=0$，此时轴线 Z4 与 Z6 平行，关节 6 无法求解。
 
 
 ## ✨ Appendix A. ur\_kinematics.m
@@ -169,6 +342,10 @@ syms dq1 dq2 dq3 dq4 dq5 dq6;
 % [q1 q2 q3 q4 q5 q6] = deal(0);
 
 %% Transformation
+TT = [nx, ox, ax, px;
+      ny, oy, ay, py;
+      nz, oz, az, pz;
+      0,  0,  0,  1];
 R01 =  [cos(q1), -sin(q1), 0;
     sin(q1), cos(q1), 0;
     0, 0, 1];
@@ -380,4 +557,7 @@ function ur_calcJnt(q)
 end
 ```
 
+
+[^quaternion]: Tomas K.M, Eric H, Naty H. Real Time Rendering 4th Edition, p80-p81, 2008.
+[^invKinematics]: Fengyu19930920. CSDN. 2018. https://blog.csdn.net/fengyu19930920/article/details/81144042/
 

@@ -22,7 +22,7 @@
  * @param: 关节角向量;
  * @return: ;
  */
-int calcJnt(std::vector<double> q);
+int calcJnt(THETA q);
 
 /* 
  * @brief: M-DH求解机械臂运动学

@@ -92,16 +92,17 @@ void add_joint_path(PATH& path) {
   // 角度伺服标志置位
   path.angleServo = ON;
   // 读入角度路径信息
-  double tmp;
-  printf("Path frequency [1/s] = ");
-  scanf("%lf", &path.freq);
+  double temp;
+  printf("Path duration [s] = ");
+  scanf("%lf", &temp);
+  path.freq = 1/temp;
   printf("PATH: SIN(0) 5JI(1) 3JI(2) 1JI(3) STEP(4)\n");
   printf("Path mode = ");
   scanf("%d", &path.interpMode);
   for (int i = 0; i < 6; i++) {
     printf("Angle of joint %d [deg] = ", i+1);
-    scanf("%lf", &tmp);
-    path.goal[i] = tmp * Deg2Rad;
+    scanf("%lf", &temp);
+    path.goal[i] = temp * Deg2Rad;
   }
   printf("-------------------------------------------------------------\n");
 }

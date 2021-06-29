@@ -9,7 +9,7 @@ double c1, s1, c2, s2, c3, s3, c4, s4, c5, s5, c6, s6, c23, s23, c234, s234;
  * @param: 关节角向量;
  * @return: ;
  */
-int calcJnt(std::vector<double> q) {
+int calcJnt(THETA q) {
   if (q.size() != 6) return -1;
   c1 = cos(q[0]);  s1 = sin(q[0]);
   c2 = cos(q[1]);  s2 = sin(q[1]);

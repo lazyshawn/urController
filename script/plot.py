@@ -4,6 +4,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from scipy.interpolate import splprep, splev
 import math
 
@@ -20,6 +21,7 @@ plt.rcParams['axes.unicode_minus'] = False
 # 读入数据
 ####################################################################
 data_theta  = np.loadtxt("../data/data.curtheta", dtype=float)
+data_refTheta  = np.loadtxt("../data/data.reftheta", dtype=float)
 data_curPos = np.loadtxt("../data/data.curpos", dtype=float)
 time = data_theta[:,0]
 
@@ -158,15 +160,57 @@ ax2.set_ylim(-400,400)
 ax2.set_zlim(0, 800)
 
 ####################################################################
-### 子图3: 末端坐标系姿态
-ax3 = fig.add_subplot(223,projection='3d')
-ax3.quiver(0,0,0,1,0,0,length=1,normalize=False)
-ax3.quiver(0,0,0,0,1,0,length=1, color='g' , normalize=False)
-ax3.quiver(0,0,0,0,0,1,length=1, color='r' , normalize=False)
+### 子图3: 参考角度位置
+refTheta_1 = data_refTheta[:,1]
+refTheta_2 = data_refTheta[:,2]
+refTheta_3 = data_refTheta[:,3]
+refTheta_4 = data_refTheta[:,4]
+refTheta_5 = data_refTheta[:,5]
+refTheta_6 = data_refTheta[:,6]
 
-ax3.set_xlim(-1,1)
-ax3.set_ylim(-1,1)
-ax3.set_zlim(-1,1)
+ax3 = fig.add_subplot(223)
+# plot: c(color), marker, linewidth
+ax3.plot(time, refTheta_1, 'r--', label=r'$\theta_1$')
+ax3.plot(time, refTheta_2, 'g:', label=r'$\theta_2$')
+ax3.plot(time, refTheta_3, 'c',   label=r'$\theta_3$')
+ax3.plot(time, refTheta_4, 'y--',   label=r'$\theta_4$')
+ax3.plot(time, refTheta_5, 'm:',   label=r'$\theta_5$')
+ax3.plot(time, refTheta_6, 'b',   label=r'$\theta_6$')
+
+# legend: 
+# loc = upper/lower/center, right/left/center, best(default)
+ax3.legend(loc='lower right')
+ax3.grid(True)
+# set:
+# ax.set_foo(bar) == ax.set(foo=bar)
+# title, xlabel, xlim, xticks, xticklabels
+ax3.set(title  = '关节角变化曲线',
+        xlabel = r'时间$\rm{(t/s)}$',
+        ylabel = r'角度$\rm{(deg/^o)}$')
+
+
+####################################################################
+### 子图4: 末端坐标系姿态
+ax4 = fig.add_subplot(224,projection='3d')
+
+# 原点坐标系
+ax4.quiver(0,0,0,1,0,0,length=vec_len,normalize=False)
+ax4.quiver(0,0,0,0,1,0,length=vec_len, color='g' , normalize=False)
+ax4.quiver(0,0,0,0,0,1,length=vec_len, color='r' , normalize=False)
+# 起点姿态
+axis_x = ax4.quiver([], [], [], [], [], [],
+        length=vec_len,normalize=False,alpha=0.5)
+#  axis_y, = ax4.quiver([], [], [],[], [], [],
+#          length=vec_len, color='g' , normalize=False,alpha=0.5)
+#  axis_z, = ax4.quiver([], [], [],[], [], [],
+#          length=vec_len, color='r' , normalize=False,alpha=0.5)
+
+ax4.set(xlabel = r'X/mm', ylabel = r'Y/mm', zlabel = r'Z/mm',
+        title = '末端位置轨迹图')
+ax4.legend(loc='best')
+ax4.set_xlim(0, 800)
+ax4.set_ylim(-400,400)
+ax4.set_zlim(0, 800)
 
 
 ####################################################################

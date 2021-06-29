@@ -23,7 +23,6 @@ void servo_function(UrDriver* ur) {
   MATRIX_D hnd_ori = Zeros(3, 3);
   MATRIX_D pos = MatD61(0, 0, 0, 0, 0, 0);
   std::vector<double> jnt_angle(6);
-  std::vector<double> jnt_angleD(6);
 
   // Get the current time
   svoLocal.time = GetCurrentTime();
@@ -31,14 +30,8 @@ void servo_function(UrDriver* ur) {
   /* Obtain the current state of ur */
 #ifndef ROBOT_OFFLINE
   jnt_angle = ur->rt_interface_->robot_state_->getQActual();
-  jnt_angleD = ur->rt_interface_->robot_state_->getQdActual();
   // copy the UR state
-  for (i = 0; i < 6; i++) {
-    servoP.CurTheta.t[i] = jnt_angle[i];
-    // ensure the robot do not move after setup
-    servoP.RefTheta.t[i] = jnt_angle[i]; 
-    servoP.CurDTheta.t[i] = jnt_angleD[i];
-  }
+  for (int i = 0; i < 6; i++) svoLocal.curTheta[i] = jnt_angle[i];
 #else
   for (int i=0; i<6; ++i) {
     jnt_angle[i] = svoLocal.curTheta[i] = svoLocal.refTheta[i];
@@ -47,7 +40,7 @@ void servo_function(UrDriver* ur) {
 
   /* Update the kinematics calculation*/
   // 计算各关节角的正余弦值
-  calcJnt(jnt_angle);
+  calcJnt(svoLocal.curTheta);
   // 返回末端夹持点的位置坐标
   pos = ur_kinematics(hnd_ori);
   // Current position of the end_link
@@ -62,14 +55,13 @@ void servo_function(UrDriver* ur) {
     }
     // 尝试弹出路径
     path_queue.try_pop(svoLocal.path, svoLocal.time, svoLocal.curTheta);
+    // 弹出时初始化参考角度
+    for (int i=0; i<6; ++i) svoLocal.refTheta[i] = svoLocal.curTheta[i];
   }
   // path_queue.wait();  // For debug: wake up by path_queue.notify_one()
 
   /* 计算轨迹插补点(关节角目标值) */
   calc_ref_joint(svoLocal);
-
-  // Update global SVO
-  config.update(&svoLocal);
 
 #ifndef ROBOT_OFFLINE
   // 机械臂执行运动指令
@@ -78,6 +70,9 @@ void servo_function(UrDriver* ur) {
 #endif
   /* 记录待保存的数据 */
   ExpDataSave(&svoLocal);
+
+  // Update global SVO
+  config.update(&svoLocal);
 }
 
 
@@ -118,14 +113,6 @@ void display(void) {
         << std::setw(printLen) << svoLocal.curTheta[4] * Rad2Deg
         << std::setw(printLen) << svoLocal.curTheta[5] * Rad2Deg
         << std::endl;
-      // printf("T:%6.2f | Ref[deg]: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f | "
-      //     "Jnt[deg]: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f\n", svoLocal.time,
-      //     svoLocal.refTheta[0] * Rad2Deg, svoLocal.refTheta[1] * Rad2Deg,
-      //     svoLocal.refTheta[2] * Rad2Deg, svoLocal.refTheta[3] * Rad2Deg,
-      //     svoLocal.refTheta[4] * Rad2Deg, svoLocal.refTheta[5] * Rad2Deg,
-      //     svoLocal.curTheta[0] * Rad2Deg, svoLocal.curTheta[1] * Rad2Deg,
-      //     svoLocal.curTheta[2] * Rad2Deg, svoLocal.curTheta[3] * Rad2Deg,
-      //     svoLocal.curTheta[4] * Rad2Deg, svoLocal.curTheta[5] * Rad2Deg);
     } else {
     // 当前有路径在运行, 且为速度伺服模式
       std::cout << "Time:" << std::setw(printLen) << svoLocal.time
@@ -137,28 +124,15 @@ void display(void) {
         << std::setw(printLen) << svoLocal.curPos[3] * Rad2Deg << "    "
         << std::setw(printLen) << svoLocal.curPos[4] * Rad2Deg << "    "
         << std::setw(printLen) << svoLocal.curPos[5] * Rad2Deg
-        << "\nReference position of the end_link\n"
+        << "\nInstant velocity of the end_link\n"
         << "   X[mm]   Y[mm]   Z[mm]  Alpha[deg]   Beta[deg]   Gama[deg]\n"
-        << std::setw(printLen) << svoLocal.refPos[0]
-        << std::setw(printLen) << svoLocal.refPos[1]
-        << std::setw(printLen) << svoLocal.refPos[2] << "    "
-        << std::setw(printLen) << svoLocal.refPos[3] * Rad2Deg << "    "
-        << std::setw(printLen) << svoLocal.refPos[4] * Rad2Deg << "    "
-        << std::setw(printLen) << svoLocal.refPos[5] * Rad2Deg
+        << std::setw(printLen) << svoLocal.path.velocity[0]
+        << std::setw(printLen) << svoLocal.path.velocity[1]
+        << std::setw(printLen) << svoLocal.path.velocity[2] << "    "
+        << std::setw(printLen) << svoLocal.path.velocity[3] * Rad2Deg << "    "
+        << std::setw(printLen) << svoLocal.path.velocity[4] * Rad2Deg << "    "
+        << std::setw(printLen) << svoLocal.path.velocity[5] * Rad2Deg
         << std::endl;
-      // printf("TIME:%0.1f\n", svoLocal.time);
-      // printf("Current position of hand:\n");
-      // printf("X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[Deg]\n");
-      // printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-      //     svoLocal.curPos[0], svoLocal.curPos[1], svoLocal.curPos[2],
-      //     svoLocal.curPos[3] * Rad2Deg, svoLocal.curPos[4] * Rad2Deg,
-      //     svoLocal.curPos[5] * Rad2Deg);
-      // printf("Reference position of hand:\n");
-      // printf("X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[Deg]\n");
-      // printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-      //     svoLocal.refPos[0], svoLocal.refPos[1], svoLocal.refPos[2],
-      //     svoLocal.refPos[3] * Rad2Deg, svoLocal.refPos[4] * Rad2Deg,
-      //     svoLocal.refPos[5] * Rad2Deg);
     }
   } // while (shm_servo_inter.status_control == INIT_C)
   std::cout << "Program end: interface_function." << std::endl;

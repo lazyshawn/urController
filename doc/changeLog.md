@@ -12,10 +12,19 @@ Notation:
 <!-- The format is based on Keep a [Changelog](https://keepachangelog.com/en/1.0.0/). -->
 
 ## ✨ Logs
-### 210622
+### 
 > commit
 [](
 )
+
+1. `fix`: 用参考角度计算速度伺服，解决了实际实验时速度较小时机械臂不动的问题。
+1. `feat`: 添加了逆运动学推导过程。
+1. `perf`: 仿真脚本中添加逆运动学函数。
+
+### 210622
+> commit
+[d44cb23](
+https://github.com/lazyshawn/urController/commit/d44cb231d273717bc1dd01ee7cb33e45ddd82b60)
 
 1. `fix`: 修复了路径运行完成后角度会跳跃到 0 的问题。
 1. `perf`: 优化多线程结构。修改路径(PATH), 系统状态的共享变量(SVO)等数据结构，

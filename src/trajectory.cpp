@@ -11,12 +11,13 @@ void calc_ref_joint(SVO& svo) {
   // 当前路径执行的时间
   double offsetTime = svo.time - svo.path.beginTime;
   double freq = svo.path.freq;
-  ARRAY orig = svo.path.orig;
-  ARRAY goal = svo.path.goal;
-  int interpMode = svo.path.interpMode;
+  double delQ = 1.4*Deg2Rad;
 
   // 角度伺服
   if (svo.path.angleServo) {
+    ARRAY orig = svo.path.orig;
+    ARRAY goal = svo.path.goal;
+    int interpMode = svo.path.interpMode;
     svo.path.complete = joint_interpolation(
         offsetTime, freq, interpMode, orig, goal, svo.refTheta);
   } else {
@@ -24,6 +25,15 @@ void calc_ref_joint(SVO& svo) {
     svo.path.complete = velocity_interpolation(
         offsetTime, freq, svo.curTheta, svo.refTheta, svo.path.velocity);
   } // if {} else {}
+
+  // 角度限位
+  for (int i=0; i<6; ++i) {
+    if (svo.refTheta[i] - svo.curTheta[i] > delQ) {
+      svo.refTheta[i] = svo.curTheta[i] + delQ;
+    } else if (svo.refTheta[i] - svo.curTheta[i] < -delQ) {
+      svo.refTheta[i] = svo.curTheta[i] - delQ;
+    }
+  }
 } // calc_ref_joint()
 
 /* 
@@ -32,6 +42,7 @@ void calc_ref_joint(SVO& svo) {
  * @param : offsetTime_运动时间; freq_插补频率; curTheta_当前关节角; 
  *          refTheta_下一时刻关节角; velocity_速度命令
  * @return: 修改_下一时刻的关节角，返回_轨迹完成标志位
+ * @remark: 用实际角度计算时，会因为角度变化太小，机械臂不动
  */
 bool velocity_interpolation(double offsetTime, double freq, THETA curTheta, 
     THETA& refTheta, ARRAY velocity) {
@@ -42,18 +53,14 @@ bool velocity_interpolation(double offsetTime, double freq, THETA curTheta,
   MATRIX_D jcb = Zeros(6,6);
   MATRIX_D velo = Zeros(6,1), dq = Zeros(6,1);
 
-  for (int i=0; i<6; ++i) {
-    velo(i+1,1) = velocity[i];
-  }
+  // 用参考角度计算各关节角的正余弦值
+  calcJnt(curTheta);
+  for (int i=0; i<6; ++i) velo(i+1,1) = velocity[i];
   // 计算 Jacobian 矩阵
   jcb = ur_jacobian(jcbCompact);
   MATRIX_D ijcb(6,6, (double *)jcbCompact->invJcb);
   dq = ijcb*velo;
-  // 角度限位
-  for (int i=0; i<6; ++i) {
-    dq(i+1,1) = (dq(i+1,1)<1.4*Deg2Rad) ? dq(i+1,1) : 0;
-    refTheta[i] = curTheta[i] + dq(i+1,1);
-  }
+  for (int i=0; i<6; ++i) refTheta[i] += dq(i+1,1);
   return false;
 } // bool velocity_interpolation()
 

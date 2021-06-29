@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
   struct timespec t;
   // 线程共享变量的局部备份
   SVO svoLocal;
+  std::vector<double> jnt_angle(6);
 
 #ifndef ROBOT_OFFLINE
   /* connect to ur robot */
@@ -37,10 +38,10 @@ int main(int argc, char** argv) {
   urRobot.setServojTime(0.008);
   sleep(1);
   urRobot.uploadProg();
-  jnt_angle = urRobot->rt_interface_->robot_state_->getQActual();
+  jnt_angle = urRobot.rt_interface_->robot_state_->getQActual();
 #else
   UrDriver* urRobot;
-  std::vector<double> jnt_angle = {0, -90, 90, -90, -90, 0};
+  jnt_angle = {0, -90, 90, -90, -90, 0};
   for (int i=0; i<6; ++i) {
     jnt_angle[i] *= Deg2Rad;
   }

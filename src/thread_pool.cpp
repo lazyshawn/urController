@@ -172,6 +172,8 @@ void interface(void) {
     case 'm': case 'M': display_menu(); break;
     // Next shot. Set for debug.
     case 'n': case 'N': path_queue.notify_one(); break;
+    // Set desired position and orientation
+    case 'p': case 'P': add_destination(pathLocal, svoLocal.curTheta); break;
     // Invalid command
     default: std::cout << "==>> Unknow command." << std::endl; break;
     }

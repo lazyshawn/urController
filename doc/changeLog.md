@@ -17,6 +17,14 @@ Notation:
 [](
 )
 
+1. `perf`: 用户界面的使用标准输入输出流。
+1. `feat`: 添加了基于逆运动学的轨迹规划。
+
+
+> commit
+[18b573b](
+https://github.com/lazyshawn/urController/commit/18b573bdc0d25c13003c38560c4a1209f8cb187b)
+
 1. `fix`: 用参考角度计算速度伺服，解决了实际实验时速度较小时机械臂不动的问题。
 1. `feat`: 添加了逆运动学推导过程。
 1. `perf`: 仿真脚本中添加逆运动学函数。

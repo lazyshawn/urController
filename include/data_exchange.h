@@ -8,6 +8,8 @@
 #define DATA_EXCHANGE_H
 
 #include "common.h"
+#include "matrix.h"
+#include "ur_kinematics.h"
 // 文件读写
 #include <fstream>
 #include <iostream>
@@ -51,6 +53,8 @@ public:
 
 void add_hand_path(PATH& path);
 void add_joint_path(PATH& path);
+void add_destination(PATH& path, THETA curTheta);
+void go_to_destination(ARRAY posture);
 
 void ExpDataSave(SVO* data);
 void SaveDataReset();

@@ -7,6 +7,7 @@ void display_menu(void) {
   printf("Joint planning:**********[j : J]\n");
   printf("Current Info:************[i : I]\n");
   printf("Start:*******************[s : S]\n");
+  printf("Add destination:*********[p : P]\n");
   printf("End:*********************[e : E]\n");
   printf("*******************************************************\n");
 }

@@ -48,6 +48,6 @@ int calcInverse(MATRIX_D &jcb, MATRIX_D &ijcb);
 MATRIX_D RPY2RotMat(double alpha, double beta, double gamma);
 MATRIX_D RotMat2AxisAngle(MATRIX_D rotMat);
 MATRIX_D RotMat2EulerAngle(MATRIX_D rotMat);
-MATRIX_D ur_InverseKinematics(MATRIX_D hand_p, MATRIX_D rotMat);
+THETA ur_InverseKinematics(MATRIX_D hand_p, MATRIX_D rotMat, THETA curTheta);
 #endif
 

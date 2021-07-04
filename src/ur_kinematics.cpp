@@ -225,5 +225,52 @@ MATRIX_D RotMat2AxisAngle(MATRIX_D rotMat) {
   }
 }
 
-// MATRIX_D ur_InverseKinematics(MATRIX_D hand_p, MATRIX_D rotMat) {}
+THETA ur_InverseKinematics(MATRIX_D hand_p, MATRIX_D rotMat, THETA curTheta) {
+  std::array<double,6> qJoint;
+  double c1, s1, c2, s2, c3, s3, c4, s4, c5, s5, c6, s6;
+  double nx, ny, nz, ox, oy, oz, ax, ay, az, px, py, pz, temp1, temp2;
+  nx = rotMat(1,1);  ox = rotMat(1,2);  ax = rotMat(1,3);  px = hand_p(1,1);
+  ny = rotMat(2,1);  oy = rotMat(2,2);  ay = rotMat(2,3);  py = hand_p(2,1);
+  nz = rotMat(3,1);  oz = rotMat(3,2);  az = rotMat(3,3);  pz = hand_p(3,1);
+
+  // 关节角1 (t15_24)
+  double A1 = py - ay*DH_D6, B1 = -px + ax*DH_D6;
+  temp1 = atan2(DH_D4, sqrt(A1*A1+B1*B1-DH_D4*DH_D4)) - atan2(A1,B1);
+  temp2 = atan2(DH_D4,-sqrt(A1*A1+B1*B1-DH_D4*DH_D4)) - atan2(A1,B1);
+  qJoint[0] = fabs(temp1-curTheta[0])<fabs(temp2-curTheta[0]) ? temp1 : temp2;
+  s1 = sin(qJoint[0]); c1 = cos(qJoint[0]);
+  // 关节角5 (t15_22)
+  temp1 =  acos(-ax*s1+ay*c1);
+  temp2 = -acos(-ax*s1+ay*c1);
+  qJoint[4] = fabs(temp1-curTheta[4])<fabs(temp2-curTheta[4]) ? temp1 : temp2;
+  s5 = sin(qJoint[4]);
+  // 关节角6 (t15_21)
+  double A6 = ny*c1-nx*s1, B6 = -oy*c1+ox*s1;
+  qJoint[5] = atan2(-s5,0) - atan2(A6,B6);
+  // qJoint[5] = atan2(-B6/s5,-A6/s5);
+  s6 = sin(qJoint[5]); c6 = cos(qJoint[5]);
+  // 关节角3 (t14_14, t14_34)
+  double A3 = px*c1 +py*s1 -DH_D5*(nx*c1*s6+ox*c1*c6+ny*s1*s6+oy*s1*c6) -DH_D6*(ay*s1+ax*c1);
+  double B3 = pz -DH_D1 -az*DH_D6 -DH_D5*(oz*c6+nz*s6);
+  temp1 =  acos((A3*A3+B3*B3-DH_A3*DH_A3-DH_A4*DH_A4)/(2*DH_A3*DH_A4));
+  temp2 = -acos((A3*A3+B3*B3-DH_A3*DH_A3-DH_A4*DH_A4)/(2*DH_A3*DH_A4));
+  qJoint[2] = fabs(temp1-curTheta[2])<fabs(temp2-curTheta[2]) ? temp1 : temp2;
+  s3 = sin(qJoint[2]); c3 = cos(qJoint[2]);
+  // 关节角2 (t14_14, t14_34)
+  double A2 = -(DH_A4*DH_A4 +2*DH_A3*DH_A4*c3 +DH_A3*DH_A3);
+  double B2 = -(DH_A4*c3+DH_A3)*A3 +DH_A4*s3*B3;
+  double C2 = (DH_A4*c3+DH_A3)*B3 +DH_A4*s3*A3;
+  qJoint[1] = atan2(C2/A2, B2/A2);
+  // 关节角4 (t15_13, t15_33)
+  double A4 = -(oz*c6 + nz*s6);
+  double B4 = -c6*(ox*c1+oy*s1) -s6*(nx*c1+ny*s1);
+  qJoint[3] = atan2(B4, A4) - qJoint[1] - qJoint[2];
+  // Wrap qJoint[3] to (-pi,pi]
+  if (qJoint[3] > M_PI) {
+    qJoint[3] -= 2*M_PI;
+  } else if (qJoint[3] < -M_PI) {
+    qJoint[3] += 2*M_PI;
+  }
+  return qJoint;
+}
 

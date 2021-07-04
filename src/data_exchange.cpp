@@ -120,30 +120,62 @@ void add_hand_path(PATH& path) {
   // 取消角度伺服标志
   path.angleServo = OFF;
   // 读入路径信息
-  printf("Path duration [s] = ");
-  scanf("%lf", &temp);
+  std::cout << "Path duration [s] = " << std::endl;
+  std::cin >> temp;
   path.freq = 1/temp;
   gain = path.freq * path.delT;
   // 平动位移量
-  printf("Translation velocity x of the end_link[mm]:");
-  scanf("%lf", &path.velocity[0]);
-  printf("Translation velocity y of the end_link[mm]:");
-  scanf("%lf", &path.velocity[1]);
-  printf("Translation velocity z of the end_link[mm]:");
-  scanf("%lf", &path.velocity[2]);
+  std::cout << "Translation velocity x of the end_link[mm]: ";
+  std::cin >> path.velocity[0];
+  std::cout << "Translation velocity y of the end_link[mm]: ";
+  std::cin >> path.velocity[1];
+  std::cout << "Translation velocity z of the end_link[mm]: ";
+  std::cin >> path.velocity[2];
   // 转动位移量
-  printf("Angular velocity around x of the end_link[deg/s]:");
-  scanf("%lf", &path.velocity[3]);
+  std::cout << "Angular velocity around x of the end_link[deg/s]: ";
+  std::cin >> path.velocity[3];
   path.velocity[3] *= Deg2Rad;
-  printf("Angular velocity around y of the end_link[deg/s]:");
-  scanf("%lf", &path.velocity[4]);
+  std::cout << "Angular velocity around x of the end_link[deg/s]: ";
+  std::cin >> path.velocity[4];
   path.velocity[4] *= Deg2Rad;
-  printf("Angular velocity around z of the end_link[deg/s]:");
-  scanf("%lf", &path.velocity[5]);
+  std::cout << "Angular velocity around x of the end_link[deg/s]: ";
+  std::cin >> path.velocity[5];
   path.velocity[5] *= Deg2Rad;
   // 归一化: 转化为一个伺服周期内的位移量
   for (int i=0; i<6; ++i) path.velocity[i] *= gain;
   printf("-------------------------------------------------------------\n");
+}
+
+/* 
+ * @func  : add_destination
+ * @brief : 从键盘录入 Cartesion 空间内的目标位置
+ * @param : path-路径的引用, curTheta-当前关节角度
+ * @return: void
+ */
+void add_destination(PATH& path, THETA curTheta) {
+  double temp, oriR, oriP, oriY;
+  MATRIX_D handPos = Zeros(3,1), handOri = Zeros(3,1), rotMat = Zeros(3,3);
+  printf("\n---------------Now you are in PosOriServoMode!---------------\n");
+  printf("Set the destination information.\n");
+  // 角度伺服标志置位
+  path.angleServo = ON;
+  path.interpMode = 2;
+  // 读入路径信息
+  printf("Path duration [s] = ");
+  scanf("%lf", &temp);
+  path.freq = 1/temp;
+  // 位置
+  std::cout << "X position[mm]: "; std::cin >> handPos(1,1);
+  // std::cout << "Y position[mm]: "; std::cin >> handPos(2,1);
+  handPos(2,1) = DH_D4;
+  std::cout << "Z position[mm]: "; std::cin >> handPos(3,1);
+  // 姿态
+  std::cout << "Tilt angle[deg]: "; std::cin >> oriP;
+  oriP *= Deg2Rad;
+  rotMat(1,1) = cos(oriP);  rotMat(3,1) = -sin(oriP); rotMat(2,2) = -1;
+  rotMat(1,3) = -sin(oriP); rotMat(3,3) = -cos(oriP);
+  printf("-------------------------------------------------------------\n");
+  path.goal = ur_InverseKinematics(handPos, rotMat, curTheta);
 }
 
 // 保存全局变量的数组

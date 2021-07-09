@@ -51,10 +51,12 @@ public:
   void notify_one();
 };
 
-void add_hand_path(PATH& path);
-void add_joint_path(PATH& path);
-void add_destination(PATH& path, THETA curTheta);
-void go_to_destination(ARRAY posture);
+void read_displacement(NUMBUF& inputData);
+void read_joint_destination(NUMBUF& inputData);
+void read_cartesion_destination(NUMBUF& inputData);
+void add_displacement(PATH& path, NUMBUF& inputData);
+void add_joint_destination(PATH& path, NUMBUF& inputData);
+void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta);
 
 void ExpDataSave(SVO* data);
 void SaveDataReset();

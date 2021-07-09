@@ -6,7 +6,7 @@
 #include <cmath>
 
 #define DEBUG
-#define ROBOT_OFFLINE
+// #define ROBOT_OFFLINE
 #define ON 1
 #define OFF 0
 #define INIT_C 0
@@ -48,6 +48,8 @@ typedef std::array<double,6> ARRAY;
 typedef std::array<double,6> THETA;
 // 位姿: 位置_3 + 姿态_4
 typedef std::array<double,7> POS;
+// 键盘读入的缓冲
+typedef std::array<double,10> NUMBUF;
 
 // 路径
 struct PATH {
@@ -56,17 +58,19 @@ struct PATH {
     complete = false;
     delT = (double)NSEC_PER_PERIOD / (double)NSEC_PER_SEC;
     velocity = {0,0,0,0,0,0};
+    fingerPos = 0;
   }
 
-  double beginTime; // 开始时间
+  double beginTime;  // 开始时间
   double freq;       // 插补频率: 总时间的倒数
-  bool angleServo;  // 角度伺服标志
+  bool angleServo;   // 角度伺服标志
   bool complete;     // 轨迹完成标志
-  int interpMode;   // 插补模式
+  int interpMode;    // 插补模式
   ARRAY orig;        // 插值起点(角度伺服) [mm]
   ARRAY goal;        // 插值终点(角度伺服) [mm]
   ARRAY velocity;    // 速度命令(位姿伺服) [mm/s, rad/s]
   double delT;       // 伺服周期时间
+  double fingerPos;  // 手指位置
 };
 
 // 全局的线程共享结构体: 系统状态

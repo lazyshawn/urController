@@ -1,14 +1,45 @@
 
 #include "../include/user_interface.h"
 
+/* 
+ * @func  : scanKeyboard
+ * @brief : 监听键盘事件
+ * @param : void
+ * @return: 键盘按键的 ASCII 码
+ * @refes : https://www.cnblogs.com/SchrodingerDoggy/p/14072739.html
+ */
+int scanKeyboard() {
+  // 通过tcsetattr函数设置terminal的属性来控制需不需要回车来结束输入
+  struct termios new_settings;
+  struct termios stored_settings;
+  // 备份 termios 设置
+  tcgetattr(0, &stored_settings);
+  new_settings = stored_settings;
+  new_settings.c_lflag &= (~ICANON);
+  new_settings.c_cc[VTIME] = 0;
+  tcgetattr(0, &stored_settings);
+  new_settings.c_cc[VMIN] = 1;
+  tcsetattr(0, TCSANOW, &new_settings);
+  // 监听键盘事件
+  int input = getchar();
+  // 还原设置
+  tcsetattr(0, TCSANOW, &stored_settings);
+  return input;
+}
+
 void display_menu(void) {
   printf("\n**************Menu (please input [CR])*****************\n");
-  printf("Cartesion planning:******[c : C]\n");
-  printf("Joint planning:**********[j : J]\n");
-  printf("Current Info:************[i : I]\n");
-  printf("Start:*******************[s : S]\n");
-  printf("Add destination:*********[p : P]\n");
-  printf("End:*********************[e : E]\n");
+  printf("Cartesion space planning:******[c : C]\n");
+  printf("Joint space planning:**********[x : x]\n");
+  printf("Velocity command:**************[v : V]\n");
+  printf("Start:*************************[s : S]\n");
+  printf("Print state info:**************[p : P]\n");
+  printf("Menu:**************************[m : M]\n");
+  printf("Next shoot:********************[n : N]\n");
+  printf("-------------- Navigation ------------\n");
+  printf("Left/Down/Up/Right*************[hj kl]\n");
+  printf("Tilt clockwise/conterclock*****[u / i]\n");
+  printf("End:***************************[ ESC ]\n");
   printf("*******************************************************\n");
 }
 

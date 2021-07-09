@@ -12,14 +12,23 @@ Notation:
 <!-- The format is based on Keep a [Changelog](https://keepachangelog.com/en/1.0.0/). -->
 
 ## ✨ Logs
-### 
+### 210709
 > commit
 [](
 )
 
+1. `feat`: 集成了 RobotiQ 夹爪。可以实现开合控制、读取夹爪位置、夹持力控制。
+1. `feat`: 添加了按键判断，不再需要回车输入命令。
+1. `perf`: 轨迹规划部分的代码中，输入与规划分层实现。
+1. `feat`: 实现用键盘控制机械臂在 X-Z 平面内运动。
+
+### 210704
+> commit
+[c8f2bd9](
+https://github.com/lazyshawn/urController/commit/c8f2bd91e6fa93a2b79daf078d433399492fa1d3)
+
 1. `perf`: 用户界面的使用标准输入输出流。
 1. `feat`: 添加了基于逆运动学的轨迹规划。
-
 
 > commit
 [18b573b](

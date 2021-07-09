@@ -95,8 +95,8 @@ c1(\dot\theta_2+\dot\theta_3+\dot\theta_4) -s_1s_{234}\dot\theta_5 +(c_1c_5+s_1c
 \end{array}} \right]
 $$
 
-由 $\dot q = J_\omega{^0_6\omega}$ 得，
-$[q_x, q_y, q_z]^T$ 对应的 Jacobian 矩阵分量的各列为各关节角的方向向量，即:
+由 ${^0_6\omega} = J_\omega\dot q$ 得，
+末端角速度对应的 Jacobian 矩阵分量的各列即为各关节角的角速度矢量:
 $$
 J_\omega = \left[ {\begin{array}{cc}
 0 & { - {s_1}} & -s_1 & -s_1 & -c_1{s_{234}} &  - {s_1}{c_5} + {c_1}{c_{234}}{s_5} \\

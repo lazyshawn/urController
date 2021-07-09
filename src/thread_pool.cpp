@@ -17,7 +17,7 @@ extern Path_queue path_queue;
  * @param : UrDriver*_机械臂驱动类的指针
  * @return: void
  */
-void servo_function(UrDriver* ur) {
+void servo_function(UrDriver* ur, RobotiQ* rbtQ) {
   // Copy global SVO
   SVO svoLocal = config.getCopy();
   MATRIX_D hnd_ori = Zeros(3, 3);
@@ -67,6 +67,7 @@ void servo_function(UrDriver* ur) {
   // 机械臂执行运动指令
   for (int i=0; i<6; ++i) jnt_angle[i] = svoLocal.refTheta[i];
   ur->servoj(jnt_angle, 1);
+  rbtQ->open_to_cmd(svoLocal.path.fingerPos);
 #endif
   /* 记录待保存的数据 */
   ExpDataSave(&svoLocal);
@@ -149,31 +150,90 @@ void interface(void) {
   SVO svoLocal = config.getCopy();
   PATH pathLocal;
   char command;
+  NUMBUF inputData;
+  double increTime = 0.2;
 
   display_menu();
   while (shm_servo_inter.status_control == INIT_C) {
+    // 输入数组置零
+    for (int i=0; i<get_array_size(inputData); ++i) inputData[i] = 0;
     // Wait command
-    std::cout << "Please press any key" << std::endl;
-    std::cin >> command;
+    command = scanKeyboard();
     svoLocal = config.getCopy();
     // Run command
     switch (command) {
-    // hand reference setting
-    case 'c': case 'C': add_hand_path(pathLocal); break;
-    // joint reference setting
-    case 'j': case 'J': add_joint_path(pathLocal); break;
-    // Start
+    // add destination in Cartesion space (c/C)
+    case 'x': case 'X':
+      read_joint_destination(inputData);
+      add_joint_destination(pathLocal, inputData);
+      break;
+    // add destination in Joint space (x/X)
+    case 'c': case 'C':
+      read_cartesion_destination(inputData);
+      add_cartesion_destination(pathLocal, inputData, svoLocal.curTheta);
+      break;
+    // add velocity command (v/V)
+    case 'v': case 'V':
+      read_displacement(inputData);
+      add_displacement(pathLocal, inputData);
+      break;
+    // start (s/S)
     case 's': case 'S': path_queue.push(pathLocal); break;
+    /* *** Navigation *** */
+    // move foward -X (h/H)
+    case 'h': case 'H':
+      inputData[6] = increTime; inputData[0] = -1;
+      add_displacement(pathLocal, inputData);
+      break;
+    // move foward -Z (j/J)
+    case 'j': case 'J':
+      inputData[6] = increTime; inputData[2] = -1;
+      add_displacement(pathLocal, inputData);
+      break;
+    // move foward +Z (k/K)
+    case 'k': case 'K':
+      inputData[6] = increTime; inputData[2] = 1;
+      add_displacement(pathLocal, inputData);
+      break;
+    // move foward +X (l/L)
+    case 'l': case 'L':
+      inputData[6] = increTime; inputData[0] = 1;
+      add_displacement(pathLocal, inputData);
+      break;
+    // move foward +X (l/L)
+    case 'u': case 'U':
+      inputData[6] = increTime; inputData[4] = 1;
+      add_displacement(pathLocal, inputData);
+      break;
+    // move foward +X (l/L)
+    case 'i': case 'I':
+      inputData[6] = increTime; inputData[4] = -1;
+      add_displacement(pathLocal, inputData);
+      break;
+    // close robotiQ (y/Y)
+    case 'y': case 'Y':
+      pathLocal.angleServo = OFF;
+      inputData[6] = increTime;
+      inputData[8] = 80;
+      add_displacement(pathLocal, inputData);
+      break;
+    // open robotiQ (o/O)
+    case 'o': case 'O':
+      pathLocal.angleServo = OFF;
+      inputData[6] = increTime;
+      inputData[8] = 2;
+      add_displacement(pathLocal, inputData);
+      break;
     // Show the information of robot
-    case 'i': case 'I': display_current_information(svoLocal); break;
-    // Exit
-    case 'e': case 'E': shm_servo_inter.status_control = EXIT_C; break;
+    case 'p': case 'P': display_current_information(svoLocal); break;
     // Show menu
     case 'm': case 'M': display_menu(); break;
-    // Next shot. Set for debug.
+    // Next shoot(N). Set for debug.
     case 'n': case 'N': path_queue.notify_one(); break;
-    // Set desired position and orientation
-    case 'p': case 'P': add_destination(pathLocal, svoLocal.curTheta); break;
+    // 回车和换行
+    case 10: case 13: break;
+    // Exit (e/E/ESC)
+    case 27: shm_servo_inter.status_control = EXIT_C; break;
     // Invalid command
     default: std::cout << "==>> Unknow command." << std::endl; break;
     }

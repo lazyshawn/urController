@@ -188,20 +188,21 @@ time = np.linspace(0, int(T), int(T/dt+1)) # 时间
 #    q_jnt[:,[i]] = q
 
 # 初始状态
-q_jnt[:,0] = q0.reshape(1,6)
+#  q_jnt[:,0] = q0.reshape(1,6)
+q0 = [0, -98.9, 117.79, -108.88]
 ur_kinematics(q0)
-pos[:,0] = Tran[0:3,3]
+#  pos[:,0] = Tran[0:3,3]
 print(Tran)
 # 终止状态
-Tran = [[1,0,0,300],[0,1,0,300],[0,0,1,300],[0,0,0,1]]
-qq = inv_kinematics(Tran, q0)
-print("\n")
-print(q0.reshape(1,6)*r2d)
-print(qq*r2d)
-ur_kinematics(qq)
-print(Tran)
-pos[:,-1] = Tran[0:3,3]
-q_jnt[:,-1] = qq
+#  Tran = [[1,0,0,300],[0,1,0,300],[0,0,1,300],[0,0,0,1]]
+#  qq = inv_kinematics(Tran, q0)
+#  print("\n")
+#  print(q0.reshape(1,6)*r2d)
+#  print(qq*r2d)
+#  ur_kinematics(qq)
+#  print(Tran)
+#  pos[:,-1] = Tran[0:3,3]
+#  q_jnt[:,-1] = qq
 
 ####################################################################
 # 创建图框

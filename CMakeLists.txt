@@ -29,6 +29,8 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/src
 )
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
+# Link directories
+link_directories(${CMAKE_SOURCE_DIR}/lib)
 # Add an executable with the above sources
 add_executable(demo_bin
   ${DIR_SRCS}
@@ -40,4 +42,5 @@ add_executable(demo_bin
 # )
 find_package(Threads)
 target_link_libraries(demo_bin ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(demo_bin robotiq)
 

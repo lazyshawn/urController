@@ -7,11 +7,12 @@
 #include "../include/data_exchange.h"
 #include "../include/ur_kinematics.h"
 #include "../include/system_time.h"
-#include "../include/matrix.h"
 #include "../include/ur_driver.h"
 #include "../include/thread_pool.h"
 #include "../include/robotiq.h"
 
+// duration of servo period
+double SERVO_TIME = (double)NSEC_PER_PERIOD/NSEC_PER_SEC;
 // Defined from dataExchange.cpp
 extern Config config;
 extern Path_queue path_queue;
@@ -49,6 +50,7 @@ int main(int argc, char** argv) {
   UrDriver* urRobot;
   RobotiQ* rbtQ;
   jnt_angle = {0, -90, 90, -90, -90, 0};
+  // jnt_angle = {0, -98.9, 117.8, -108.9, -90, 90};
   for (int i=0; i<6; ++i) {
     jnt_angle[i] *= Deg2Rad;
   }

@@ -12,12 +12,13 @@
 #include "common.h"
 #include "data_exchange.h"
 #include "trajectory.h"
+#include "path_planning.h"
 #include "system_time.h"
 #include "user_interface.h"
 #include "ur_kinematics.h"
 #include "ur_driver.h"
 #include "robotiq.h"
-#include "matrix.h"
+// #include "matrix.h"
 #include <sys/mman.h>  // 内存管理
 #include <thread>   // 线程管理
 

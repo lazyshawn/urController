@@ -20,8 +20,8 @@ extern Path_queue path_queue;
 void servo_function(UrDriver* ur, RobotiQ* rbtQ) {
   // Copy global SVO
   SVO svoLocal = config.getCopy();
-  MATRIX_D hnd_ori = Zeros(3, 3);
-  MATRIX_D pos = MatD61(0, 0, 0, 0, 0, 0);
+  Mat3d oriMat;
+  Vec6d pose;
   std::vector<double> jnt_angle(6);
 
   // Get the current time
@@ -42,9 +42,9 @@ void servo_function(UrDriver* ur, RobotiQ* rbtQ) {
   // 计算各关节角的正余弦值
   calcJnt(svoLocal.curTheta);
   // 返回末端夹持点的位置坐标
-  pos = ur_kinematics(hnd_ori);
+  pose = ur_kinematics(oriMat);
   // Current position of the end_link
-  for (int i = 0; i < 6; i++) {svoLocal.curPos[i] = pos(i+1, 1);}
+  for (int i = 0; i < 6; i++) {svoLocal.curPos[i] = pose(i);}
 
   /* Pop path info */
   if (svoLocal.path.complete) {
@@ -151,7 +151,9 @@ void interface(void) {
   PATH pathLocal;
   char command;
   NUMBUF inputData;
-  double increTime = 0.2;
+  TRIARR state, circleCmd;
+  double increTime = 0.2, tiltAngle;
+  THETA theta;
 
   display_menu();
   while (shm_servo_inter.status_control == INIT_C) {
@@ -180,6 +182,8 @@ void interface(void) {
     // start (s/S)
     case 's': case 'S': path_queue.push(pathLocal); break;
     /* *** Navigation *** */
+    // go home (g/G)
+    case 'g': case 'G': robot_go_home(svoLocal.curTheta); break;
     // move foward -X (h/H)
     case 'h': case 'H':
       inputData[6] = increTime; inputData[0] = -1;
@@ -226,6 +230,14 @@ void interface(void) {
       break;
     // Show the information of robot
     case 'p': case 'P': display_current_information(svoLocal); break;
+    // Test
+    case 't': 
+      tiltAngle = -M_PI/2 - svoLocal.curTheta[1] - svoLocal.curTheta[2]
+        - svoLocal.curTheta[3];
+      state = {svoLocal.curPos[0], svoLocal.curPos[2], tiltAngle};
+      circleCmd = {500, 20, 20*Deg2Rad};
+      pivot_about_points(state, circleCmd, 3);
+      break;
     // Show menu
     case 'm': case 'M': display_menu(); break;
     // Next shoot(N). Set for debug.

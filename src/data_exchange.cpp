@@ -88,31 +88,17 @@ void Path_queue::notify_one() {
  */
 void read_joint_destination(NUMBUF& inputData) {
   printf("\n-----------------Now you are in JntSvoMode!-----------------\n");
-  std::cout << "Set the path information.\n" << std::endl;
-  std::cout << "Path duration [s]: ";
+  std::cout << "Set the path information.\n" << "Path duration [s]: ";
   std::cin >> inputData[6];
-  std::cout << "PATH: SIN(0) 5JI(1) 3JI(2) 1JI(3) STEP(4)\n" << std::endl;
+  std::cout << "PATH: SIN(0) 5JI(1) 3JI(2) 1JI(3) STEP(4)" << std::endl;
   std::cout << "Path mode = ";
   std::cin >> inputData[7];
   // 读入角度路径信息
   for (int i = 0; i < 6; i++) {
-    std::cout << "Angle of joint %d [deg] = " << i+1 << std::endl;
+    std::cout << "Angle of joint " << i+1 << "[deg] = ";
     std::cin >> inputData[i];
   }
   printf("-------------------------------------------------------------\n");
-}
-
-void add_joint_destination(PATH& path, NUMBUF& inputData) {
-  // 角度伺服标志置位
-  path.angleServo = ON;
-  // 读入角度路径信息
-  path.freq = 1/inputData[6];
-  path.interpMode = inputData[7];
-  for (int i = 0; i < 6; i++) {
-    path.goal[i] = inputData[i]*Deg2Rad;
-  }
-  path.fingerPos = inputData[8];
-  path_queue.push(path);
 }
 
 /* 
@@ -145,25 +131,6 @@ void read_displacement(NUMBUF& inputData) {
   printf("-------------------------------------------------------------\n");
 }
 
-void add_displacement(PATH& path, NUMBUF& inputData) {
-  double gain, temp;
-  // 取消角度伺服标志
-  path.angleServo = OFF;
-  // 读入路径信息
-  path.freq = 1/inputData[6];
-  gain = path.freq * path.delT;
-  for (int i=0; i<3; ++i) {
-    // 平动位移量
-    path.velocity[i] = inputData[i];
-    // 转动位移量
-    path.velocity[i+3] = inputData[i+3]*Deg2Rad;
-  }
-  // 归一化: 转化为一个伺服周期内的位移量
-  for (int i=0; i<6; ++i) path.velocity[i] *= gain;
-  path.fingerPos = inputData[8];
-  path_queue.push(path);
-}
-
 /* 
  * @func  : add_destination
  * @brief : 从键盘录入 Cartesion 空间内的目标位置
@@ -178,33 +145,10 @@ void read_cartesion_destination(NUMBUF& inputData) {
   std::cin >> inputData[6];
   // 位姿信息
   std::cout << "X position[mm]: ";           std::cin >> inputData[0];
-  std::cout << "Z position[mm]: ";           std::cin >> inputData[1];
-  std::cout << "Tilt angle[deg]: ";          std::cin >> inputData[2];
-  std::cout << "Finger displacement [mm]: "; std::cin >> inputData[3];
+  std::cout << "Z position[mm]: ";           std::cin >> inputData[2];
+  std::cout << "Tilt angle[deg]: ";          std::cin >> inputData[3];
+  std::cout << "Finger displacement [mm]: "; std::cin >> inputData[8];
   printf("-------------------------------------------------------------\n");
-}
-
-void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta) {
-  double oriR, oriP, oriY;
-  MATRIX_D handPos = Zeros(3,1), handOri = Zeros(3,1), rotMat = Zeros(3,3);
-  printf("\n---------------Now you are in PosOriServoMode!---------------\n");
-  printf("Set the destination information.\n");
-  // 角度伺服标志置位
-  path.angleServo = ON;
-  path.interpMode = 2;
-  // 读入路径信息
-  path.freq = 1/inputData[6];
-  // 位置
-  handPos(1,1) = inputData[0];
-  handPos(2,1) = DH_D4;
-  handPos(3,1) = inputData[1];
-  // 姿态
-  oriP = inputData[2] * Deg2Rad;
-  rotMat(1,1) = cos(oriP); rotMat(3,1) =  sin(oriP); rotMat(2,2) = -1;
-  rotMat(1,3) = sin(oriP); rotMat(3,3) = -cos(oriP);
-  path.fingerPos = inputData[3];
-  path.goal = ur_InverseKinematics(handPos, rotMat, curTheta);
-  path_queue.push(path);
 }
 
 // 保存全局变量的数组

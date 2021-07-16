@@ -161,32 +161,24 @@ ax2.set_zlim(0, 800)
 
 ####################################################################
 ### 子图3: 参考角度位置
-refTheta_1 = data_refTheta[:,1]
-refTheta_2 = data_refTheta[:,2]
-refTheta_3 = data_refTheta[:,3]
-refTheta_4 = data_refTheta[:,4]
-refTheta_5 = data_refTheta[:,5]
-refTheta_6 = data_refTheta[:,6]
+ax3 = fig.add_subplot(223,projection='3d')
 
-ax3 = fig.add_subplot(223)
-# plot: c(color), marker, linewidth
-ax3.plot(time, refTheta_1, 'r--', label=r'$\theta_1$')
-ax3.plot(time, refTheta_2, 'g:', label=r'$\theta_2$')
-ax3.plot(time, refTheta_3, 'c',   label=r'$\theta_3$')
-ax3.plot(time, refTheta_4, 'y--',   label=r'$\theta_4$')
-ax3.plot(time, refTheta_5, 'm:',   label=r'$\theta_5$')
-ax3.plot(time, refTheta_6, 'b',   label=r'$\theta_6$')
+ax3.scatter(hnd_x[0], hnd_y[0], hnd_z[0], marker='*', color='darkorange',
+        linewidth=2.5, label='Start point')
+ax3.scatter(hnd_x[-1], hnd_y[-1], hnd_z[-1], marker='*', color='m',
+        linewidth=2.5, label='End point')
+ax3.ticklabel_format(useOffset=False, style='plain')
+xmin, xmax = ax3.get_xlim()
+ymin, ymax = ax3.get_ylim()
+zmin, zmax = ax3.get_zlim()
+ax3.plot(hnd_x, hnd_y, hnd_z, label='3D path')
+ax3.plot(hnd_y, hnd_z, zs=xmin, zdir='x', linestyle=':', label='(y, z)')
+ax3.plot(hnd_x, hnd_z, zs=ymax, zdir='y', linestyle=':', label='(x, z)')
+ax3.plot(hnd_x, hnd_y, zs=zmin, zdir='z', linestyle=':', label='(x, y)')
 
-# legend: 
-# loc = upper/lower/center, right/left/center, best(default)
-ax3.legend(loc='lower right')
-ax3.grid(True)
-# set:
-# ax.set_foo(bar) == ax.set(foo=bar)
-# title, xlabel, xlim, xticks, xticklabels
-ax3.set(title  = '关节角变化曲线',
-        xlabel = r'时间$\rm{(t/s)}$',
-        ylabel = r'角度$\rm{(deg/^o)}$')
+ax3.set(xlabel = r'X/mm', ylabel = r'Y/mm', zlabel = r'Z/mm',
+        title = '末端位置轨迹图')
+ax3.legend(loc='best')
 
 
 ####################################################################

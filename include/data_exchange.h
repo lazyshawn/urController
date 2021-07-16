@@ -8,7 +8,7 @@
 #define DATA_EXCHANGE_H
 
 #include "common.h"
-#include "matrix.h"
+// #include "matrix.h"
 #include "ur_kinematics.h"
 // 文件读写
 #include <fstream>
@@ -54,9 +54,6 @@ public:
 void read_displacement(NUMBUF& inputData);
 void read_joint_destination(NUMBUF& inputData);
 void read_cartesion_destination(NUMBUF& inputData);
-void add_displacement(PATH& path, NUMBUF& inputData);
-void add_joint_destination(PATH& path, NUMBUF& inputData);
-void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta);
 
 void ExpDataSave(SVO* data);
 void SaveDataReset();

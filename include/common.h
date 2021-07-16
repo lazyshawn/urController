@@ -6,7 +6,7 @@
 #include <cmath>
 
 #define DEBUG
-// #define ROBOT_OFFLINE
+#define ROBOT_OFFLINE
 #define ON 1
 #define OFF 0
 #define INIT_C 0
@@ -20,6 +20,8 @@
 #define NSEC_PER_SEC (1000000000) /* 1 s */
 // 一个伺服周期内的纳秒数
 #define NSEC_PER_PERIOD (8000000) /* 8 ms */
+
+extern double SERVO_TIME;
 
 struct shm_interface {
   shm_interface() {
@@ -49,7 +51,10 @@ typedef std::array<double,6> THETA;
 // 位姿: 位置_3 + 姿态_4
 typedef std::array<double,7> POS;
 // 键盘读入的缓冲
+// 0-5                | 6    | 7          | 8
+//Joint/Pose/Velocity | time | interpMode | fingerPos
 typedef std::array<double,10> NUMBUF;
+typedef std::array<double,3> TRIARR;
 
 // 路径
 struct PATH {
@@ -59,6 +64,8 @@ struct PATH {
     delT = (double)NSEC_PER_PERIOD / (double)NSEC_PER_SEC;
     velocity = {0,0,0,0,0,0};
     fingerPos = 0;
+    freq = 1/delT;
+    interpMode = 2;
   }
 
   double beginTime;  // 开始时间

@@ -12,10 +12,21 @@ Notation:
 <!-- The format is based on Keep a [Changelog](https://keepachangelog.com/en/1.0.0/). -->
 
 ## ✨ Logs
+### 
+> commit[](
+)
+
+1. `perf`: 使用 `Eigen` 库替代自定义的 `matrix` 矩阵运算库。
+1. `perf`: 新增 `path_planning` 文件，用于路径的上层规划。
+1. `fix`: 修正 DH 参数下标: $alpha_{i-1}$, $a_{i-1}$。
+1. `fix`: 修复了速度指令中的伺服指令(8ms)不执行的问题。
+1. `feat`: 新增了求解机械臂在 X-Z 平面内运动的正逆解的函数。
+
+
 ### 210709
 > commit
-[](
-)
+[7f907c3](
+https://github.com/lazyshawn/urController/commit/7f907c3c5a61bde9f6ae2ce623eead15ad1e9cef)
 
 1. `feat`: 集成了 RobotiQ 夹爪。可以实现开合控制、读取夹爪位置、夹持力控制。
 1. `feat`: 添加了按键判断，不再需要回车输入命令。

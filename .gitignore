@@ -4,6 +4,7 @@
 !.gitignore
 
 !src
+!src/*
 
 !include
 !include/*

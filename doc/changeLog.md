@@ -13,8 +13,18 @@ Notation:
 
 ## ✨ Logs
 ### 
-> commit[](
+>commit
+[](
 )
+
+1. `perf`: 终端彩色信息输出 `printf_status`。
+1. `ci`: 集成了 Realsense 相机。
+1. `fix`: 修复了速度指令中 Eigen 库报错的 Bug。
+
+### 210717
+> commit
+[26690b1](
+https://github.com/lazyshawn/urController/commit/26690b143b7e8b56918e7c2409fe2a880a99eae4)
 
 1. `perf`: 使用 `Eigen` 库替代自定义的 `matrix` 矩阵运算库。
 1. `perf`: 新增 `path_planning` 文件，用于路径的上层规划。

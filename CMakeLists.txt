@@ -15,6 +15,9 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 add_library(robotiq SHARED
   src/robotiq.cpp
 )
+add_library(camera SHARED
+  src/camera.cpp
+)
 # Specify include directories for a lib
 # target_include_directories(demo_lib PUBLIC
 #   ${PROJECT_SOURCE_DIR}/include
@@ -52,12 +55,20 @@ add_executable(robotiq_bin
   src/main_robotiq.cpp
   src/robotiq.cpp
 )
+# Realsense
+add_executable(camera_bin
+  src/main_camera.cpp
+  src/camera.cpp
+)
 
 # Link the demo_lib target with the demo_bin target
 # target_link_libraries(demo_bin PRIVATE
 #   demo_lib
 # )
+find_package(OpenCV REQUIRED)
+target_link_libraries(camera_bin ${OpenCV_LIBS})
+target_link_libraries(camera_bin -lrealsense2)
 find_package(Threads)
 target_link_libraries(ur_bin ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(ur_bin robotiq)
+target_link_libraries(ur_bin robotiq camera)
 

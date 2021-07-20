@@ -66,6 +66,7 @@ struct PATH {
     fingerPos = 0;
     freq = 1/delT;
     interpMode = 2;
+    fingerPos = -1;
   }
 
   double beginTime;  // 开始时间

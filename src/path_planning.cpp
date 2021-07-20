@@ -52,9 +52,6 @@ void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta) {
   rotMat(0,2) = sin(oriP); rotMat(2,2) = -cos(oriP);
   path.fingerPos = inputData[8];
   path.goal = ur_InverseKinematics(handPos, rotMat, curTheta);
-  // for (int i=0; i<6; ++i) {
-  //   printf("refTheta[%d] = %f\n", i, path.goal[i]*Rad2Deg);
-  // }
   path_queue.push(path);
 }
 

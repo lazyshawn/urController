@@ -10,6 +10,7 @@
 #include "../include/ur_driver.h"
 #include "../include/thread_pool.h"
 #include "../include/robotiq.h"
+#include "../include/print_status.h"
 
 // duration of servo period
 double SERVO_TIME = (double)NSEC_PER_PERIOD/NSEC_PER_SEC;
@@ -34,6 +35,7 @@ int main(int argc, char** argv) {
   SVO svoLocal;
   std::vector<double> jnt_angle(6);
 
+  printf_info("Begin\n");
 #ifndef ROBOT_OFFLINE
   /* connect to ur robot */
   std::cout << "Connecting to " << ur_ip << std::endl;

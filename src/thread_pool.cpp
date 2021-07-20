@@ -67,7 +67,7 @@ void servo_function(UrDriver* ur, RobotiQ* rbtQ) {
   // 机械臂执行运动指令
   for (int i=0; i<6; ++i) jnt_angle[i] = svoLocal.refTheta[i];
   ur->servoj(jnt_angle, 1);
-  rbtQ->open_to_cmd(svoLocal.path.fingerPos);
+  if (svoLocal.path.fingerPos>=0) rbtQ->open_to_cmd(svoLocal.path.fingerPos);
 #endif
   /* 记录待保存的数据 */
   ExpDataSave(&svoLocal);
@@ -159,6 +159,7 @@ void interface(void) {
   while (shm_servo_inter.status_control == INIT_C) {
     // 输入数组置零
     for (int i=0; i<get_array_size(inputData); ++i) inputData[i] = 0;
+    inputData[8] = -1;
     // Wait command
     command = scanKeyboard();
     svoLocal = config.getCopy();

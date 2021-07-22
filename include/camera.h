@@ -3,7 +3,13 @@
 #include <librealsense2/hpp/rs_types.hpp>
 #include <librealsense2/rs.hpp>
 #include <librealsense2/rsutil.h>
-#include <opencv2/opencv.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+// #include <opencv2/opencv.hpp>
+#include <iostream>
+#include <fstream>
+#include "user_interface.h"
 
 class Camera {
 private:
@@ -46,4 +52,10 @@ public:
    */
   cv::VideoWriter create_recorder();
 };
+
+void check_up_folder(std::string dir = "../build/calibration/");
+
+void sample_photos_for_calibration(std::string pics_dir_for_calibration);
+
+void self_calibrate(std::string pics_dir_for_calibration, std::array<int,2> boardSize);
 

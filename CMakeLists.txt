@@ -59,6 +59,7 @@ add_executable(robotiq_bin
 add_executable(camera_bin
   src/main_camera.cpp
   src/camera.cpp
+  src/user_interface.cpp
 )
 
 # Link the demo_lib target with the demo_bin target

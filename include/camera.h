@@ -53,9 +53,29 @@ public:
   cv::VideoWriter create_recorder();
 };
 
+class CameraCalibrator {
+private:
+  /* 输入点: */
+  // 世界坐标中的点
+  std::vector<std::vector<cv::Point3f>> objectPoints;
+  // 点的位置(以像素为单位)
+  std::vector<std::vector<cv::Point2f>> imagePoints;
+  // 输出矩阵、畸变参数
+  cv::Mat cameraMatrix, disCoeffs;
+  // 指定校准方式的标志
+  int flag;
+public:
+  // 旋转量, 平移量
+  std::vector<cv::Mat> rvecs, tvecs;
+  // 打开棋盘格图像，并提取角点
+  int add_Chessboard_Points(const std::string picsDir, cv::Size& boardSize);
+  // 校准相机，返回重投影精度
+  double calibrate(cv::Size & imageSize);
+};
+
 void check_up_folder(std::string dir = "../build/calibration/");
 
-void sample_photos_for_calibration(std::string pics_dir_for_calibration);
+void sample_photos_for_calibration(Camera &camera, std::string pics_dir_for_calibration);
 
 void self_calibrate(std::string pics_dir_for_calibration, std::array<int,2> boardSize);
 

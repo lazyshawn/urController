@@ -6,7 +6,7 @@
 
 // Shared variable
 Config config;
-Path_queue path_queue;
+PathQueue pathQueue;
 
 /* 
  * @class : Config
@@ -29,14 +29,14 @@ void Config::update(SVO* SVO_) {
  * @brief : 用于多线程操作的路径队列
  */
 // 添加新路径
-void Path_queue::push(PATH path) {
+void PathQueue::push(PATH path) {
   std::scoped_lock lock(path_mutex);
   data.push_back(std::move(path));
   path_cond.notify_one();
 }
 
 // 等待并弹出路径
-void Path_queue::wait_and_pop(PATH& path) {
+void PathQueue::wait_and_pop(PATH& path) {
   std::unique_lock lock(path_mutex);
   path_cond.wait(lock, [this]{return !data.empty();});
   path = std::move(data.front());
@@ -44,7 +44,7 @@ void Path_queue::wait_and_pop(PATH& path) {
 }
 
 // 尝试弹出路径
-bool Path_queue::try_pop(PATH& path) {
+bool PathQueue::try_pop(PATH& path) {
   std::scoped_lock lock(path_mutex);
   if (data.empty()) return false;
   path = std::move(data.front());
@@ -52,7 +52,7 @@ bool Path_queue::try_pop(PATH& path) {
   return true;
 }
 
-bool Path_queue::try_pop(PATH& path, double time, ARRAY orig) {
+bool PathQueue::try_pop(PATH& path, double time, ARRAY orig) {
   std::scoped_lock lock(path_mutex);
   if (data.empty()) return false;
   path = std::move(data.front());
@@ -63,19 +63,19 @@ bool Path_queue::try_pop(PATH& path, double time, ARRAY orig) {
 }
 
 // 判断路径队列是否为空
-bool Path_queue::empty() const {
+bool PathQueue::empty() const {
   std::scoped_lock lock(path_mutex);
   return data.empty();
 }
 
 // 进入等待(for debug)
-void Path_queue::wait() {
+void PathQueue::wait() {
   std::unique_lock lock(path_mutex);
   path_cond.wait(lock);
 }
 
 // 唤醒在等待的条件变量(for debug)
-void Path_queue::notify_one() {
+void PathQueue::notify_one() {
   std::scoped_lock lock(path_mutex);
   path_cond.notify_one();
 }

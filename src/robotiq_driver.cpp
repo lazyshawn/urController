@@ -1,4 +1,4 @@
-#include "../include/robotiq.h"
+#include "../include/robotiq_driver.h"
 
 /* 
  * @func  : RobotiQ

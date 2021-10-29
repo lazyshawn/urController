@@ -17,7 +17,7 @@
 #include "user_interface.h"
 #include "ur_kinematics.h"
 #include "ur_driver.h"
-#include "robotiq.h"
+#include "robotiq_driver.h"
 // #include "matrix.h"
 #include <sys/mman.h>  // 内存管理
 #include <thread>   // 线程管理

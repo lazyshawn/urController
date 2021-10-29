@@ -33,14 +33,14 @@ public:
   void update(SVO* SVO_);
 };
 
-class Path_queue {
+class PathQueue {
 private:
   std::deque<PATH> data;
   mutable std::mutex path_mutex;
   std::condition_variable path_cond;
 
 public:
-  Path_queue(){};
+  PathQueue(){};
   void push(PATH path);
   void wait_and_pop(PATH& path);
   bool try_pop(PATH& path);

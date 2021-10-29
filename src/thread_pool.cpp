@@ -8,7 +8,7 @@
 extern struct shm_interface shm_servo_inter;
 // Defined from dataExchange.cpp
 extern Config config;
-extern Path_queue path_queue;
+extern PathQueue pathQueue;
 
 
 /* 
@@ -49,16 +49,16 @@ void servo_function(UrDriver* ur, RobotiQ* rbtQ) {
   /* Pop path info */
   if (svoLocal.path.complete) {
     // 当前路径运行完成，且队列中没有新的路径
-    if (path_queue.empty()) {
+    if (pathQueue.empty()) {
       config.update(&svoLocal);
       return;
     }
     // 尝试弹出路径
-    path_queue.try_pop(svoLocal.path, svoLocal.time, svoLocal.curTheta);
+    pathQueue.try_pop(svoLocal.path, svoLocal.time, svoLocal.curTheta);
     // 弹出时初始化参考角度
     for (int i=0; i<6; ++i) svoLocal.refTheta[i] = svoLocal.curTheta[i];
   }
-  // path_queue.wait();  // For debug: wake up by path_queue.notify_one()
+  // pathQueue.wait();  // For debug: wake up by pathQueue.notify_one()
 
   /* 计算轨迹插补点(关节角目标值) */
   calc_ref_joint(svoLocal);
@@ -181,7 +181,7 @@ void interface(void) {
       add_displacement(pathLocal, inputData);
       break;
     // start (s/S)
-    case 's': case 'S': path_queue.push(pathLocal); break;
+    case 's': case 'S': pathQueue.push(pathLocal); break;
     /* *** Navigation *** */
     // go home (g/G)
     case 'g': case 'G': robot_go_home(svoLocal.curTheta); break;
@@ -242,7 +242,7 @@ void interface(void) {
     // Show menu
     case 'm': case 'M': display_menu(); break;
     // Next shoot(N). Set for debug.
-    case 'n': case 'N': path_queue.notify_one(); break;
+    case 'n': case 'N': pathQueue.notify_one(); break;
     // 回车和换行
     case 10: case 13: break;
     // Exit (e/E/ESC)

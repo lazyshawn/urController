@@ -9,14 +9,14 @@
 #include "../include/system_time.h"
 #include "../include/ur_driver.h"
 #include "../include/thread_pool.h"
-#include "../include/robotiq.h"
+#include "../include/robotiq_driver.h"
 #include "../include/print_status.h"
 
 // duration of servo period
 double SERVO_TIME = (double)NSEC_PER_PERIOD/NSEC_PER_SEC;
 // Defined from dataExchange.cpp
 extern Config config;
-extern Path_queue path_queue;
+extern PathQueue pathQueue;
 // 线程结束标志
 struct shm_interface shm_servo_inter;
 

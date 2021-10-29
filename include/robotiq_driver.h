@@ -1,5 +1,5 @@
-#ifndef ROBOTIQ_H
-#define ROBOTIQ_H
+#ifndef ROBOTIQ_DRIVER_H
+#define ROBOTIQ_DRIVER_H
 
 #include <array>
 /* *** 串口通讯头文件 *** */

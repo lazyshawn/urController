@@ -1,4 +1,4 @@
-#include "../include/camera.h"
+#include "../include/camera_driver.h"
 
 // 录制视频
 // int main() {

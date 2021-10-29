@@ -2,7 +2,7 @@
 
 // Shared variable
 extern Config config;
-extern Path_queue path_queue;
+extern PathQueue pathQueue;
 
 void add_joint_destination(PATH& path, NUMBUF& inputData) {
   // 角度伺服标志置位
@@ -14,7 +14,7 @@ void add_joint_destination(PATH& path, NUMBUF& inputData) {
     path.goal[i] = inputData[i]*Deg2Rad;
   }
   path.fingerPos = inputData[8];
-  path_queue.push(path);
+  pathQueue.push(path);
 }
 
 void add_displacement(PATH& path, NUMBUF& inputData) {
@@ -33,7 +33,7 @@ void add_displacement(PATH& path, NUMBUF& inputData) {
   // 归一化: 转化为一个伺服周期内的位移量
   for (int i=0; i<6; ++i) path.velocity[i] *= gain;
   path.fingerPos = inputData[8];
-  path_queue.push(path);
+  pathQueue.push(path);
 }
 
 void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta) {
@@ -52,7 +52,7 @@ void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta) {
   rotMat(0,2) = sin(oriP); rotMat(2,2) = -cos(oriP);
   path.fingerPos = inputData[8];
   path.goal = ur_InverseKinematics(handPos, rotMat, curTheta);
-  path_queue.push(path);
+  pathQueue.push(path);
 }
 
 void robot_go_home(THETA curTheta){
@@ -89,6 +89,6 @@ void instant_command(THETA refTheta) {
   for (int i=0; i<6; ++i) {
     pathLocal.goal[i] = refTheta[i];
   }
-  path_queue.push(pathLocal);
+  pathQueue.push(pathLocal);
 }
 

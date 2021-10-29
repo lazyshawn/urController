@@ -1,3 +1,6 @@
+#ifndef CAMERA_DRIVER_H
+#define CAMERA_DRIVER_H
+
 #include <librealsense2/hpp/rs_processing.hpp>
 #include <librealsense2/hpp/rs_sensor.hpp>
 #include <librealsense2/hpp/rs_types.hpp>
@@ -78,4 +81,6 @@ void check_up_folder(std::string dir = "../build/calibration/");
 void sample_photos_for_calibration(Camera &camera, std::string pics_dir_for_calibration);
 
 void self_calibrate(std::string pics_dir_for_calibration, std::array<int,2> boardSize);
+
+#endif
 

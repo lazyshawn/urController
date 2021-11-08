@@ -29,14 +29,6 @@
 
 extern double SERVO_TIME;
 
-struct shm_interface {
-  shm_interface() {
-    status_control = INIT_C;
-  }
-  int status_print;
-  int status_control;
-};
-
 // PID 控制参数
 struct GAIN {
   double K_vt[6];

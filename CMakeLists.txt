@@ -19,6 +19,10 @@ function(build_driver)
   add_library(camera SHARED
     src/camera_driver.cpp
   )
+  add_library(forceSensor SHARED
+    src/sensor_driver.cpp
+    src/sensor_interface.cpp
+  )
   add_library(ur5e SHARED
     src/UR5eDriver/ur_driver.cpp
     src/UR5eDriver/robot_state.cpp
@@ -53,16 +57,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # Link directories
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 # Add an executable with the above sources
-add_executable(ur_bin
-  src/main.cpp
-  src/trajectory.cpp
-  src/system_time.cpp
-  src/thread_pool.cpp
-  src/ur_kinematics.cpp
-  src/path_planning.cpp
-  src/data_exchange.cpp
-  src/user_interface.cpp
-)
 # RobotiQ
 add_executable(robotiq_bin
   src/robotiq_main.cpp
@@ -74,15 +68,35 @@ add_executable(camera_bin
   src/camera_driver.cpp
   src/user_interface.cpp
 )
+find_package(OpenCV REQUIRED)
+target_link_libraries(camera_bin ${OpenCV_LIBS})
+target_link_libraries(camera_bin -lrealsense2)
+# Force Sensor
+add_executable(forceSensor_bin
+  src/sensor_driver.cpp
+  src/sensor_interface.cpp
+  src/sensor_main.cpp
+)
+target_link_libraries(forceSensor_bin Ginkgo_Driver)
+# Main
+add_executable(ur_bin
+  src/main.cpp
+  src/trajectory.cpp
+  src/system_time.cpp
+  src/thread_pool.cpp
+  src/ur_kinematics.cpp
+  src/path_planning.cpp
+  src/data_exchange.cpp
+  src/user_interface.cpp
+  src/sensor_driver.cpp
+  src/sensor_interface.cpp
+)
 
 # Link the demo_lib target with the demo_bin target
 # target_link_libraries(demo_bin PRIVATE
 #   demo_lib
 # )
-find_package(OpenCV REQUIRED)
-target_link_libraries(camera_bin ${OpenCV_LIBS})
-target_link_libraries(camera_bin -lrealsense2)
 find_package(Threads)
 target_link_libraries(ur_bin ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(ur_bin ur5e robotiq camera)
+target_link_libraries(ur_bin ur5e robotiq camera forceSensor Ginkgo_Driver)
 

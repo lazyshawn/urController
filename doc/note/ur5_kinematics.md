@@ -5,7 +5,7 @@
 1. [Appendix B. ur\_simulate.m](#✨-appendix-b.-ur_simulate.m)
 
 ## ✨ UR5 configuration
-![ur5-configuration](./pics/UR5-Configuration.svg)
+![ur5-configuration](../pics/UR5-Configuration.svg)
 
 Link parameters of the UR5 (**Modified DH**).
 

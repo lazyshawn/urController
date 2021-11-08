@@ -17,8 +17,8 @@ double SERVO_TIME = (double)NSEC_PER_PERIOD/NSEC_PER_SEC;
 // Defined from dataExchange.cpp
 extern Config config;
 extern PathQueue pathQueue;
-// 线程结束标志
-struct shm_interface shm_servo_inter;
+// 线程管理标识
+extern struct ThreadManager threadManager;
 
 int main(int argc, char** argv) {
   // UR通信的条件变量
@@ -87,13 +87,14 @@ int main(int argc, char** argv) {
 
   /* Start background thread*/
   std::thread interface_thread(interface);
+  std::thread master_thread(master_thread_function);
   // std::thread display_thread(display);
 
   /* Get ready */
   SaveDataReset();
   ResetTime();
 
-  while (shm_servo_inter.status_control == INIT_C) {
+  while (threadManager.process != THREAD_EXIT) {
     /* Wait until next shot | 休眠到下个周期开始 */
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
 
@@ -117,6 +118,7 @@ int main(int argc, char** argv) {
   std::cout << "Program end: servo_function." << std::endl;
   // 等待线程结束
   interface_thread.join();
+  master_thread.join();
   // display_thread.join();
 
   // close UR

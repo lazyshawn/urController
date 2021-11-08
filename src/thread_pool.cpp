@@ -1,22 +1,40 @@
-/* *********************************************************
+/*************************************************************************
  * ==>> 伺服主程序
- * *********************************************************/
-
+*************************************************************************/
 #include "../include/thread_pool.h"
 
-// 线程结束标志
-extern struct shm_interface shm_servo_inter;
-// Defined from dataExchange.cpp
+// 线程管理标识
+struct ThreadManager threadManager;
 extern Config config;
 extern PathQueue pathQueue;
+extern Force force;
 
+/*************************************************************************
+ * @func: master_thread_function
+ * @brief: Master线程，收集线程数据，分配线程任务
+*************************************************************************/
+void master_thread_function(void) {
+  // Global data
+  SVO svoLocal;
+  ForceData forceData;
 
-/* 
+  while (threadManager.process != THREAD_EXIT) {
+    svoLocal = config.getCopy();
+    forceData = force.get_copy();
+
+    if (!forceData.rcvStart) continue;
+    std::cout << forceData.forceMat[0][0][0] << "  "
+      << forceData.forceMat[0][0][1] << "  "
+      << forceData.forceMat[0][0][2] << std::endl;
+  }
+}
+
+/*************************************************************************
  * @func  : servo_function
  * @brief : 伺服主程序_对路径进行插值，并发送运动指令
  * @param : UrDriver*_机械臂驱动类的指针
  * @return: void
- */
+*************************************************************************/
 void servo_function(UrDriver* ur, RobotiQ* rbtQ) {
   // Copy global SVO
   SVO svoLocal = config.getCopy();
@@ -77,17 +95,17 @@ void servo_function(UrDriver* ur, RobotiQ* rbtQ) {
 }
 
 
-/* 
+/*************************************************************************
  * @func  : display
  * @brief : 显示线程_以一定间隔显示机械臂运行时的状态信息
  * @param : void
  * @return: void
- */
+*************************************************************************/
 void display(void) {
   SVO svoLocal;
   int printLen = 8;  // 输出数据长度 [9999.99s -999.99mm, -359.99deg]
   // 以一定间隔显示机械臂运行时的状态信息
-  while (shm_servo_inter.status_control == INIT_C) {
+  while (threadManager.process != THREAD_EXIT) {
     // delay for 25 microseconds
     usleep(25000);
     svoLocal = config.getCopy();
@@ -135,17 +153,17 @@ void display(void) {
         << std::setw(printLen) << svoLocal.path.velocity[5] * Rad2Deg
         << std::endl;
     }
-  } // while (shm_servo_inter.status_control == INIT_C)
+  } // while (threadManager.process != THREAD_EXIT)
   std::cout << "Program end: interface_function." << std::endl;
 } // void display(void)
 
 
-/* 
+/*************************************************************************
  * @func  : interface
  * @brief : GUI界面_处理人机交互
  * @param : void
  * @return: void
- */
+*************************************************************************/
 void interface(void) {
   SVO svoLocal = config.getCopy();
   PATH pathLocal;
@@ -154,9 +172,10 @@ void interface(void) {
   TRIARR state, circleCmd;
   double increTime = 0.2, tiltAngle;
   THETA theta;
+  std::thread sensor_thread;
 
   display_menu();
-  while (shm_servo_inter.status_control == INIT_C) {
+  while (threadManager.process != THREAD_EXIT) {
     // 输入数组置零
     for (int i=0; i<get_array_size(inputData); ++i) inputData[i] = 0;
     inputData[8] = -1;
@@ -229,6 +248,11 @@ void interface(void) {
       inputData[8] = 2;
       add_displacement(pathLocal, inputData);
       break;
+    // Start force sensor
+    case 'f': case 'F': 
+      sensor_thread = std::thread(sensor_thread_function);
+      threadManager.device.sensor = true;
+      break;
     // Show the information of robot
     case 'p': case 'P': display_current_information(svoLocal); break;
     // Test
@@ -246,12 +270,15 @@ void interface(void) {
     // 回车和换行
     case 10: case 13: break;
     // Exit (e/E/ESC)
-    case 27: shm_servo_inter.status_control = EXIT_C; break;
+    case 27: threadManager.process = THREAD_EXIT; break;
     // Invalid command
     default: std::cout << "==>> Unknow command." << std::endl; break;
     }
     config.update(&svoLocal);
-  } // while (shm_servo_inter.status_control == INIT_C)
+  } // while (threadManager.process != THREAD_EXIT)
+  if (threadManager.device.sensor == true) {
+    sensor_thread.join();
+  }
   std::cout << "Program end: display_function." << std::endl;
 } // void interface(void)
 

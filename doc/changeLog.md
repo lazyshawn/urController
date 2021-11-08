@@ -12,10 +12,57 @@ Notation:
 <!-- The format is based on Keep a [Changelog](https://keepachangelog.com/en/1.0.0/). -->
 
 ## ✨ Logs
-### 210622
-> commit
+### 
+>commit
 [](
 )
+
+1. `perf`: 终端彩色信息输出 `printf_status`。
+1. `ci`: 集成了 Realsense 相机。
+1. `fix`: 修复了速度指令中 Eigen 库报错的 Bug。
+
+### 210717
+> commit
+[26690b1](
+https://github.com/lazyshawn/urController/commit/26690b143b7e8b56918e7c2409fe2a880a99eae4)
+
+1. `perf`: 使用 `Eigen` 库替代自定义的 `matrix` 矩阵运算库。
+1. `perf`: 新增 `path_planning` 文件，用于路径的上层规划。
+1. `fix`: 修正 DH 参数下标: $alpha_{i-1}$, $a_{i-1}$。
+1. `fix`: 修复了速度指令中的伺服指令(8ms)不执行的问题。
+1. `feat`: 新增了求解机械臂在 X-Z 平面内运动的正逆解的函数。
+
+
+### 210709
+> commit
+[7f907c3](
+https://github.com/lazyshawn/urController/commit/7f907c3c5a61bde9f6ae2ce623eead15ad1e9cef)
+
+1. `feat`: 集成了 RobotiQ 夹爪。可以实现开合控制、读取夹爪位置、夹持力控制。
+1. `feat`: 添加了按键判断，不再需要回车输入命令。
+1. `perf`: 轨迹规划部分的代码中，输入与规划分层实现。
+1. `feat`: 实现用键盘控制机械臂在 X-Z 平面内运动。
+
+### 210704
+> commit
+[c8f2bd9](
+https://github.com/lazyshawn/urController/commit/c8f2bd91e6fa93a2b79daf078d433399492fa1d3)
+
+1. `perf`: 用户界面的使用标准输入输出流。
+1. `feat`: 添加了基于逆运动学的轨迹规划。
+
+> commit
+[18b573b](
+https://github.com/lazyshawn/urController/commit/18b573bdc0d25c13003c38560c4a1209f8cb187b)
+
+1. `fix`: 用参考角度计算速度伺服，解决了实际实验时速度较小时机械臂不动的问题。
+1. `feat`: 添加了逆运动学推导过程。
+1. `perf`: 仿真脚本中添加逆运动学函数。
+
+### 210622
+> commit
+[d44cb23](
+https://github.com/lazyshawn/urController/commit/d44cb231d273717bc1dd01ee7cb33e45ddd82b60)
 
 1. `fix`: 修复了路径运行完成后角度会跳跃到 0 的问题。
 1. `perf`: 优化多线程结构。修改路径(PATH), 系统状态的共享变量(SVO)等数据结构，

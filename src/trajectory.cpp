@@ -11,12 +11,13 @@ void calc_ref_joint(SVO& svo) {
   // 当前路径执行的时间
   double offsetTime = svo.time - svo.path.beginTime;
   double freq = svo.path.freq;
-  ARRAY orig = svo.path.orig;
-  ARRAY goal = svo.path.goal;
-  int interpMode = svo.path.interpMode;
+  double delQ = 8*Deg2Rad;
 
   // 角度伺服
   if (svo.path.angleServo) {
+    ARRAY orig = svo.path.orig;
+    ARRAY goal = svo.path.goal;
+    int interpMode = svo.path.interpMode;
     svo.path.complete = joint_interpolation(
         offsetTime, freq, interpMode, orig, goal, svo.refTheta);
   } else {
@@ -24,6 +25,15 @@ void calc_ref_joint(SVO& svo) {
     svo.path.complete = velocity_interpolation(
         offsetTime, freq, svo.curTheta, svo.refTheta, svo.path.velocity);
   } // if {} else {}
+
+  // 角度限位
+  for (int i=0; i<6; ++i) {
+    if (svo.refTheta[i] - svo.curTheta[i] > delQ) {
+      svo.refTheta[i] = svo.curTheta[i] + delQ;
+    } else if (svo.refTheta[i] - svo.curTheta[i] < -delQ) {
+      svo.refTheta[i] = svo.curTheta[i] - delQ;
+    }
+  }
 } // calc_ref_joint()
 
 /* 
@@ -32,28 +42,28 @@ void calc_ref_joint(SVO& svo) {
  * @param : offsetTime_运动时间; freq_插补频率; curTheta_当前关节角; 
  *          refTheta_下一时刻关节角; velocity_速度命令
  * @return: 修改_下一时刻的关节角，返回_轨迹完成标志位
+ * @remark: 用实际角度计算时，会因为角度变化太小，机械臂不动
  */
 bool velocity_interpolation(double offsetTime, double freq, THETA curTheta, 
     THETA& refTheta, ARRAY velocity) {
-  // 当前运动时间占总时间的比例大于1，即超过预定时间，插值点不变，返回已完成
-  if (freq * offsetTime > 1) return true;
+  Vec6d velo, dq;
+  double time = freq * (offsetTime+SERVO_TIME);
 
-  JACOBIAN* jcbCompact = new JACOBIAN;
-  MATRIX_D jcb = Zeros(6,6);
-  MATRIX_D velo = Zeros(6,1), dq = Zeros(6,1);
-
-  for (int i=0; i<6; ++i) {
-    velo(i+1,1) = velocity[i];
-  }
+  for (int i=0; i<6; ++i) velo[i] = velocity[i];
+  // 用参考角度计算各关节角的正余弦值
+  calcJnt(refTheta);
   // 计算 Jacobian 矩阵
-  jcb = ur_jacobian(jcbCompact);
-  MATRIX_D ijcb(6,6, (double *)jcbCompact->invJcb);
+  Mat6d ijcb = ur_jacobian().inverse();
   dq = ijcb*velo;
-  // 角度限位
-  for (int i=0; i<6; ++i) {
-    dq(i+1,1) = (dq(i+1,1)<1.4*Deg2Rad) ? dq(i+1,1) : 0;
-    refTheta[i] = curTheta[i] + dq(i+1,1);
+  // 当前运动时间占总时间的比例大于1，即超过预定时间，插值点不变，返回已完成
+  if (time >= 1) {
+    // 路径停止前，给一定时间让机械臂停止
+    for (int i=0; i<6; ++i) refTheta[i] = refTheta[i];
+    if (time >= 1.1) {
+      return true;
+    }
   }
+  for (int i=0; i<6; ++i) refTheta[i] += dq(i);
   return false;
 } // bool velocity_interpolation()
 
@@ -67,10 +77,10 @@ bool velocity_interpolation(double offsetTime, double freq, THETA curTheta,
 bool joint_interpolation(double offsetTime, double freq, int interpMode, 
     ARRAY orig, ARRAY goal, ARRAY& refVal) {
   // 当前运动时间占总时间的比例 | 已完成的路径占全路径的比例
-  double time = freq * offsetTime;
+  double time = freq * (offsetTime+SERVO_TIME);
 
   // 超过预定时间，插值点设为终点值，返回已完成
-  if (time > 1) {
+  if (time >= 1) {
     refVal = goal;
     return true;
   }

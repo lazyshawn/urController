@@ -8,6 +8,8 @@
 #define DATA_EXCHANGE_H
 
 #include "common.h"
+// #include "matrix.h"
+#include "ur_kinematics.h"
 // 文件读写
 #include <fstream>
 #include <iostream>
@@ -31,14 +33,14 @@ public:
   void update(SVO* SVO_);
 };
 
-class Path_queue {
+class PathQueue {
 private:
   std::deque<PATH> data;
   mutable std::mutex path_mutex;
   std::condition_variable path_cond;
 
 public:
-  Path_queue(){};
+  PathQueue(){};
   void push(PATH path);
   void wait_and_pop(PATH& path);
   bool try_pop(PATH& path);
@@ -49,8 +51,9 @@ public:
   void notify_one();
 };
 
-void add_hand_path(PATH& path);
-void add_joint_path(PATH& path);
+void read_displacement(NUMBUF& inputData);
+void read_joint_destination(NUMBUF& inputData);
+void read_cartesion_destination(NUMBUF& inputData);
 
 void ExpDataSave(SVO* data);
 void SaveDataReset();

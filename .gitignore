@@ -4,14 +4,22 @@
 !.gitignore
 
 !src
+!src/*
 
 !include
+!include/*
 
 !doc
 !doc/*
 !doc/pics/
 !doc/pics/*
+!doc/note/
+!doc/note/*
 
-!script/
+!script
 !script/*.py
+
+!lib
+# CAN-USB
+!lib/libGinkgo_Driver.so
 

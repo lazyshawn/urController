@@ -66,7 +66,6 @@ add_executable(robotiq_bin
 add_executable(camera_bin
   src/camera_main.cpp
   src/camera_driver.cpp
-  src/user_interface.cpp
 )
 find_package(OpenCV REQUIRED)
 target_link_libraries(camera_bin ${OpenCV_LIBS})
@@ -90,13 +89,18 @@ add_executable(ur_bin
   src/user_interface.cpp
   src/sensor_driver.cpp
   src/sensor_interface.cpp
+  src/camera_driver.cpp
+  src/camera_interface.cpp
 )
 
 # Link the demo_lib target with the demo_bin target
 # target_link_libraries(demo_bin PRIVATE
 #   demo_lib
 # )
-find_package(Threads)
-target_link_libraries(ur_bin ${CMAKE_THREAD_LIBS_INIT})
+# find_package(Threads)
+# target_link_libraries(ur_bin ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(ur_bin -pthread)
+target_link_libraries(ur_bin ${OpenCV_LIBS})
+target_link_libraries(ur_bin -lrealsense2)
 target_link_libraries(ur_bin ur5e robotiq camera forceSensor Ginkgo_Driver)
 

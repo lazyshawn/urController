@@ -18,7 +18,8 @@ void Force::update(ForceData* ForceData_){
 }
 
 /*************************************************************************
-* @func: sensor_thread_function;
+* @func : sensor_thread_function;
+* @brief: 传感器线程;
 *************************************************************************/
 void sensor_thread_function(void) {
   ForceData forceData;

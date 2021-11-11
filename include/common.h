@@ -5,7 +5,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#define ROBOT_OFFLINE
+// #define ROBOT_OFFLINE
 #define INTEGRATE_CAMERA
 #define INTEGRATE_SENSOR
 

@@ -81,7 +81,7 @@ int ForceSensor::init_dev() {
   CAN_InitEx.CAN_RFLM = 0;
   CAN_InitEx.CAN_TXFP = 1;
   CAN_InitEx.CAN_RELAY = 0;
-  // Baurate
+  // Baurate 1M
   CAN_InitEx.CAN_BRP = 9;
   CAN_InitEx.CAN_BS1 = 2;
   CAN_InitEx.CAN_BS2 = 1;

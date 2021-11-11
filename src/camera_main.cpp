@@ -19,20 +19,17 @@
 int main() {
   // 声明一个相机、标定类
   Camera camera;
-  CameraCalibrator calibrator;
 
   /* Checking whether path exists */
-  std::string picsDir = "../build/calibration/";
-  check_up_folder(picsDir);
+  camera.check_up_folder();
 
   /* Take photos */
-  sample_photos_for_calibration(camera, picsDir);
+  camera.sample_photos_for_calibration();
 
   /* self_calibrate */
   // std::array<int,2> size = {11,8};
   // self_calibrate(picsDir, size);
-  cv::Size boardSize(11,8);
-  calibrator.add_Chessboard_Points(picsDir, boardSize);
+  camera.self_calibrate();
   return 0;
 }
 

@@ -1,5 +1,8 @@
 #include "../include/camera_driver.h"
 
+/*************************************************************************
+ * @class: Camera
+*************************************************************************/
 // 构造函数
 Camera::Camera(){
   // Create a configuration for configuring the pipeline
@@ -54,29 +57,35 @@ cv::VideoWriter Camera::create_recorder() {
   return outputVideo;
 }
 
-/* 
- * @func  : check_up_folder
- * @brief : 清理指定文件夹; 若文件夹不存在则创建，否则清空
- * @param : std::string pics_dir_for_calibration - 文件夹路径
- * @return: 
- */
-void check_up_folder (std::string dir) {
-  /* Checking whether path exists */
-  // std::string dir = "../build/calibration/";
-  std::fstream file;
-  file.open(dir, std::ios::in);
-  if (!file) {
-    std::cout << dir << " don't exist." << std::endl;
-    system(("mkdir -p " + dir).c_str());
-  } else {
-    std::cout << dir << " already exist." << std::endl;
-    system(("rm -rf " + dir + "*.jpg").c_str());
+// 采集用于标定的棋盘格图片
+void Camera::sample_photos_for_calibration() {
+  std::string picsDir = calibrationDir;
+  cv::Mat sampleFrame;
+  char fileName[20];
+  bool keepSample = true;
+  int counter = 0;
+  while (keepSample) {
+    sampleFrame = get_color_frame();
+    imshow("Display color Image", sampleFrame);
+    // Wait command
+    switch (cv::waitKey(10)) {
+    case 'q': keepSample = false; break;
+    // Press 'Space' or 'Enter' to sample
+    case 10: case 13:
+      counter++;
+      std::cout << "Get pics No." << counter << std::endl;
+      sprintf(fileName, "pic_%03d.jpg", counter);
+      imwrite(picsDir+fileName, sampleFrame);
+      break;
+    default: break;
+    }
   }
+  cv::destroyAllWindows();
 }
 
 // 打开棋盘格图像，并提取角点
-int CameraCalibrator::add_Chessboard_Points(const std::string picsDir, 
-    cv::Size& boardSize){
+int Camera::self_calibrate(cv::Size boardSize) {
+  std::string picsDir = calibrationDir;
   // Creating vector to store vectors of 3D points for each checkerboard image
   std::vector<std::vector<cv::Point3f>> objpoints;
   // Creating vector to store vectors of 2D points for each checkerboard image
@@ -98,7 +107,6 @@ int CameraCalibrator::add_Chessboard_Points(const std::string picsDir,
   // vector to store the pixel coordinates of detected checkerboard corners
   std::vector<cv::Point2f> corner_pts;
   bool success;
-
   // Looping over all the images in the directory
   for (int i{0}; i < images.size(); i++) {
     frame = cv::imread(images[i]);
@@ -108,10 +116,8 @@ int CameraCalibrator::add_Chessboard_Points(const std::string picsDir,
     success = cv::findChessboardCorners(gray, boardSize, corner_pts,
         cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE +
         cv::CALIB_CB_FILTER_QUADS + cv::CALIB_CB_FAST_CHECK);
-    /*
-     * If desired number of corner are detected, we refine the pixel coordinates
-     * and display them on the images of checker board
-     */
+    /* If desired number of corner are detected, we refine the pixel coordinates
+     * and display them on the images of checker board */
     if (success) {
       cv::TermCriteria criteria(
           cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 30, 0.001);
@@ -128,14 +134,12 @@ int CameraCalibrator::add_Chessboard_Points(const std::string picsDir,
   }
   cv::destroyAllWindows();
 
-  /*
-   * Performing camera calibration by passing the value of known
+  /* Performing camera calibration by passing the value of known
    * 3D points (objpoints) and corresponding pixel coordinates of
-   * the detected corners (imgpoints)
-   */
+   * the detected corners (imgpoints) */
   cv::Mat cameraMatrix, distCoeffs, R, T;
   double projection = cv::calibrateCamera(objpoints, imgpoints, boardSize, 
-      cameraMatrix, distCoeffs, rvecs, T);
+      cameraMatrix, distCoeffs, rvecs, tvecs);
 
   // 保存内参矩阵
   cv::FileStorage fs("../build/calibration/calibration.ymal",
@@ -143,46 +147,33 @@ int CameraCalibrator::add_Chessboard_Points(const std::string picsDir,
   fs << "cameraMatrix" << cameraMatrix;
   fs.release();
 
+  std::cout << "Reprojection Error = " << projection << std::endl;
   std::cout << "cameraMatrix :\n" << cameraMatrix << std::endl;
   std::cout << "distCoeffs :\n" << distCoeffs << std::endl;
-  // std::cout << "Rotation vector :\n" << R << std::endl;
-  std::cout << "Translation vector :\n" << T << std::endl;
 
-  cv::Mat rotMatrix, intrinsicMatrix;
+  cv::Mat rotMatrix, extrinsicMatrix;
+  // 将旋转向量转化为旋转矩阵
   Rodrigues(rvecs[0], rotMatrix);
-  hconcat(rotMatrix, tvecs[0], intrinsicMatrix);
-  std::cout << "intrinsicMatrix :\n" << intrinsicMatrix << std::endl;
+  // 矩阵合并
+  hconcat(rotMatrix, tvecs[0], extrinsicMatrix);
+  // std::cout << "Rotation vector :\n" << rotMatrix << std::endl;
+  std::cout << "extrinsicMatrix :\n" << extrinsicMatrix << std::endl;
 
   return success;
 }
 
-// 校准相机，返回重投影精度
-double CameraCalibrator::calibrate(cv::Size & imageSize){
-  double reprojectionError;
-  return reprojectionError;
-}
-
-void sample_photos_for_calibration(Camera &camera, std::string pics_dir_for_calibration) {
-  cv::Mat sampleFrame;
-  char fileName[20];
-  bool keepSample = true;
-  int counter = 0;
-  while (keepSample) {
-    sampleFrame = camera.get_color_frame();
-    imshow("Display color Image", sampleFrame);
-    // Wait command
-    switch (cv::waitKey(10)) {
-    case 'q': keepSample = false; break;
-    // Press 'Space' or 'Enter' to sample
-    case 10: case 13:
-      counter++;
-      std::cout << "Get pics No." << counter << std::endl;
-      sprintf(fileName, "pic_%03d.jpg", counter);
-      imwrite(pics_dir_for_calibration+fileName, sampleFrame);
-      break;
-    default: break;
-    }
+// 清理指定文件夹; 若文件夹不存在则创建，否则清空
+void Camera::check_up_folder () {
+  /* Checking whether path exists */
+  std::string dir = calibrationDir;
+  std::fstream file;
+  file.open(dir, std::ios::in);
+  if (!file) {
+    std::cout << dir << " don't exist." << std::endl;
+    system(("mkdir -p " + dir).c_str());
+  } else {
+    std::cout << dir << " already exist." << std::endl;
+    system(("rm -rf " + dir + "*.jpg").c_str());
   }
-  cv::destroyAllWindows();
 }
 

@@ -3,8 +3,10 @@
 
 !.gitignore
 
-!src
+!src/
 !src/*
+!src/UR5eDriver/
+!src/UR5eDriver/*
 
 !include
 !include/*

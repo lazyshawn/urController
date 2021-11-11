@@ -20,6 +20,7 @@
 #include "ur_driver.h"
 #include "robotiq_driver.h"
 #include "sensor_interface.h"
+#include "camera_interface.h"
 
 #define THREAD_INIT 0
 #define THREAD_EXIT 255
@@ -38,8 +39,6 @@ struct ThreadManager {
 
 void master_thread_function(void);
 void servo_function(UrDriver* ur, RobotiQ* rbtQ);
-void display(void);
-void interface(void);
 
 #endif
 

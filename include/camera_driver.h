@@ -25,62 +25,32 @@ private:
   cv::Size size;
 
 public:
-  /* 
-   * @func  : Camera
-   * @brief : 构造函数
-   * @param : 
-   */
   Camera();
-  /* 析构函数 */
   ~Camera();
-  /* 
-   * @func  : get_color_frame
-   * @brief : 获取一帧彩色图片
-   * @param : 
-   * @return: 
-   */
+
+  /* 标定相关的变量与函数 */
+  // 标定图片储存文件夹
+  std::string calibrationDir = "../build/calibration/";
+  // 旋转量, 平移量
+  std::vector<cv::Mat> rvecs, tvecs;
+  // 内参矩阵、畸变参数
+  cv::Mat cameraMatrix, disCoeffs;
+  // 创建并清空标定文件夹
+  void check_up_folder();
+  // 采集用于标定的棋盘格图片
+  void sample_photos_for_calibration();
+  // 打开棋盘格图片，并提取角点
+  int self_calibrate(cv::Size boardSize=cv::Size(11,8));
+
+  /* 相机使用 */
+  // 获取一帧彩色图片
   cv::Mat get_color_frame();
-  /* 
-   * @func  : get_depth_frame
-   * @brief : 获取一帧深度图片
-   * @param : 
-   * @return: 
-   */
+  // 获取一帧深度图片
   cv::Mat get_depth_frame();
-  /* 
-   * @func  : create_recorder
-   * @brief : 生成一个视频记录对象
-   * @param : 
-   * @return: 
-   */
+  // 获取一段视频
   cv::VideoWriter create_recorder();
 };
 
-class CameraCalibrator {
-private:
-  /* 输入点: */
-  // 世界坐标中的点
-  std::vector<std::vector<cv::Point3f>> objectPoints;
-  // 点的位置(以像素为单位)
-  std::vector<std::vector<cv::Point2f>> imagePoints;
-  // 输出矩阵、畸变参数
-  cv::Mat cameraMatrix, disCoeffs;
-  // 指定校准方式的标志
-  int flag;
-public:
-  // 旋转量, 平移量
-  std::vector<cv::Mat> rvecs, tvecs;
-  // 打开棋盘格图像，并提取角点
-  int add_Chessboard_Points(const std::string picsDir, cv::Size& boardSize);
-  // 校准相机，返回重投影精度
-  double calibrate(cv::Size & imageSize);
-};
-
-void check_up_folder(std::string dir = "../build/calibration/");
-
-void sample_photos_for_calibration(Camera &camera, std::string pics_dir_for_calibration);
-
-void self_calibrate(std::string pics_dir_for_calibration, std::array<int,2> boardSize);
 
 #endif
 

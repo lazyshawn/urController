@@ -1,7 +1,7 @@
-/* *********************************************************
+/*************************************************************************
  * ==>> 主函数
- * *********************************************************/
-
+ * ref: https://wiki.linuxfoundation.org/realtime/documentation/howto/applications/start
+*************************************************************************/
 #include "../include/common.h"
 #include "../include/trajectory.h"
 #include "../include/data_exchange.h"
@@ -11,6 +11,7 @@
 #include "../include/thread_pool.h"
 #include "../include/robotiq_driver.h"
 #include "../include/print_status.h"
+#include "../include/user_interface.h"
 
 // duration of servo period
 double SERVO_TIME = (double)NSEC_PER_PERIOD/NSEC_PER_SEC;
@@ -41,6 +42,7 @@ int main(int argc, char** argv) {
   std::cout << "Connecting to " << ur_ip << std::endl;
   UrDriver urRobot(rt_ur_msg_cond, ur_msg_cond, ur_ip, ur_post);
   urRobot.start();
+  usleep(100); // 机械臂初始化，确保能TCP通信连上(accept)
   urRobot.setServojTime(0.008);
   urRobot.uploadProg();
   jnt_angle = urRobot.rt_interface_->robot_state_->getQActual();
@@ -86,9 +88,8 @@ int main(int argc, char** argv) {
   t.tv_sec++;
 
   /* Start background thread*/
-  std::thread interface_thread(interface);
+  std::thread interface_thread(interface_thread_function);
   std::thread master_thread(master_thread_function);
-  // std::thread display_thread(display);
 
   /* Get ready */
   SaveDataReset();
@@ -119,7 +120,6 @@ int main(int argc, char** argv) {
   // 等待线程结束
   interface_thread.join();
   master_thread.join();
-  // display_thread.join();
 
   // close UR
 #ifndef ROBOT_OFFLINE

@@ -21,6 +21,7 @@
 #include "robotiq_driver.h"
 #include "sensor_interface.h"
 #include "camera_interface.h"
+#include "ur5e_interface.h"
 
 #define THREAD_INIT 0
 #define THREAD_EXIT 255

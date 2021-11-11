@@ -12,11 +12,12 @@
 #include "../include/robotiq_driver.h"
 #include "../include/print_status.h"
 #include "../include/user_interface.h"
+#include "../include/ur5e_interface.h"
 
 // duration of servo period
 double SERVO_TIME = (double)NSEC_PER_PERIOD/NSEC_PER_SEC;
 // Defined from dataExchange.cpp
-extern Config config;
+extern urConfig urconfig;
 extern PathQueue pathQueue;
 // 线程管理标识
 extern struct ThreadManager threadManager;
@@ -33,7 +34,7 @@ int main(int argc, char** argv) {
   // 系统时间
   struct timespec t;
   // 线程共享变量的局部备份
-  SVO svoLocal;
+  urConfig::Data urConfigData;
   std::vector<double> jnt_angle(6);
 
   printf_info("Begin\n");
@@ -60,11 +61,11 @@ int main(int argc, char** argv) {
   }
 #endif
   for (int i=0; i<6; ++i) {
-    svoLocal.path.goal[i] = svoLocal.path.orig[i] = svoLocal.refTheta[i]
-      = svoLocal.curTheta[i] = jnt_angle[i];
+    urConfigData.path.goal[i] = urConfigData.path.orig[i] = urConfigData.refTheta[i]
+      = urConfigData.curTheta[i] = jnt_angle[i];
   }
   // 同步全局变量
-  config.update(&svoLocal);
+  urconfig.update(&urConfigData);
 
   /* Declare ourself as a real time task */
   // Data structure to describe a process' schedulability

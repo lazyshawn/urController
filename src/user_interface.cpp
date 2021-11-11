@@ -1,6 +1,6 @@
 #include "../include/user_interface.h"
 
-extern Config config;
+extern urConfig urconfig;
 extern ThreadManager threadManager;
 extern PathQueue pathQueue;
 
@@ -9,15 +9,16 @@ extern PathQueue pathQueue;
  * @brief : GUI界面_处理人机交互
 *************************************************************************/
 void interface_thread_function(void) {
-  SVO svoLocal;
+  urConfig::Data urConfigData;
   char command;
   std::thread sensor_thread, camera_thread;
+  urConfig::Data urData = urconfig.get_data();
 
   display_menu();
   while (threadManager.process != THREAD_EXIT) {
     // Wait command
     command = scanKeyboard();
-    svoLocal = config.getCopy();
+    urConfigData = urconfig.get_data();
     // Run command
     switch (command) {
     // Start camera
@@ -36,6 +37,8 @@ void interface_thread_function(void) {
     case 'n': case 'N': pathQueue.notify_one(); break;
     // Robot.
     case 'r': case 'R': teleoperate_robot(); break;
+    // Robot.
+    case 't': case 'T': display_current_information(urData);
     // 回车和换行
     case 10: case 13: break;
     // Exit (e/E/ESC)
@@ -46,7 +49,7 @@ void interface_thread_function(void) {
     // Invalid command
     default: std::cout << "==>> Unknow command." << std::endl; break;
     }
-    config.update(&svoLocal);
+    urconfig.update(&urConfigData);
   } // while (threadManager.process != THREAD_EXIT)
   if (threadManager.device.sensor == true) {
     sensor_thread.join();
@@ -112,10 +115,10 @@ void display_menu(void) {
  * @param : svo
  * @return: 下一插补点处的 关节角/位姿
 *************************************************************************/
-void display_current_information(SVO svo) {
+void display_current_information(urConfig::Data urConfigData) {
   printf("\n--------------------- Current Information -----------------------\n");
-  printf("==>> path frequency = %f [Hz]\n", svo.path.freq);
-  switch (svo.path.interpMode) {
+  printf("==>> path frequency = %f [Hz]\n", urConfigData.path.freq);
+  switch (urConfigData.path.interpMode) {
   case 0: printf("==>> path mode: Sin\n"); break;
   case 1: printf("==>> path mode: 5JI\n"); break;
   case 2: printf("==>> path mode: 3JI\n"); break;
@@ -124,25 +127,25 @@ void display_current_information(SVO svo) {
   default: printf("Error path mode\n");
   }
   printf("==>> Current Joint angle[deg]:\n%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
-       svo.curTheta[0] * Rad2Deg, svo.curTheta[1] * Rad2Deg,
-       svo.curTheta[2] * Rad2Deg, svo.curTheta[3] * Rad2Deg,
-       svo.curTheta[4] * Rad2Deg, svo.curTheta[5] * Rad2Deg);
+       urConfigData.curTheta[0] * Rad2Deg, urConfigData.curTheta[1] * Rad2Deg,
+       urConfigData.curTheta[2] * Rad2Deg, urConfigData.curTheta[3] * Rad2Deg,
+       urConfigData.curTheta[4] * Rad2Deg, urConfigData.curTheta[5] * Rad2Deg);
 
   printf("==>> Goal  Joint  Angle [Deg]:\n%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
-       svo.path.goal[0] * Rad2Deg, svo.path.goal[1] * Rad2Deg,
-       svo.path.goal[2] * Rad2Deg, svo.path.goal[3] * Rad2Deg,
-       svo.path.goal[4] * Rad2Deg, svo.path.goal[5] * Rad2Deg);
+       urConfigData.path.goal[0] * Rad2Deg, urConfigData.path.goal[1] * Rad2Deg,
+       urConfigData.path.goal[2] * Rad2Deg, urConfigData.path.goal[3] * Rad2Deg,
+       urConfigData.path.goal[4] * Rad2Deg, urConfigData.path.goal[5] * Rad2Deg);
   printf("==>> Current Position of hand:\n"
          "X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[deg]\n");
   printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-       svo.curPos[0], svo.curPos[1], svo.curPos[2],
-       svo.curPos[3]*Rad2Deg, svo.curPos[4]*Rad2Deg, svo.curPos[5]*Rad2Deg);
+       urConfigData.curPos[0], urConfigData.curPos[1], urConfigData.curPos[2],
+       urConfigData.curPos[3]*Rad2Deg, urConfigData.curPos[4]*Rad2Deg, urConfigData.curPos[5]*Rad2Deg);
 
   printf("==>> Goal Displacement of hand:\n"
          "X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[deg]\n");
   printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-      svo.path.velocity[0], svo.path.velocity[1], svo.path.velocity[2],
-      svo.path.velocity[3], svo.path.velocity[4], svo.path.velocity[5]);
+      urConfigData.path.velocity[0], urConfigData.path.velocity[1], urConfigData.path.velocity[2],
+      urConfigData.path.velocity[3], urConfigData.path.velocity[4], urConfigData.path.velocity[5]);
   printf("---------------------------------------------------------------\n\n");
 }
 
@@ -152,7 +155,7 @@ void display_current_information(SVO svo) {
  * @breif: 机械臂键盘遥操作
 *************************************************************************/
 void teleoperate_robot(void) {
-  SVO svoLocal = config.getCopy();
+  urConfig::Data urConfigData = urconfig.get_data();
   NUMBUF inputData;
   PATH pathLocal;
   char command;
@@ -161,7 +164,7 @@ void teleoperate_robot(void) {
 
   std::cout << 
     "*******************************************************\n" <<
-    "=== Remote control of the robot " <<
+    "=== Remote control of the robot \n" <<
     "*******************************************************" << std::endl;
   while (command != 27) {
     // 输入数组置零
@@ -179,7 +182,7 @@ void teleoperate_robot(void) {
     // add destination in Joint space (x/X)
     case 'c': case 'C':
       read_cartesion_destination(inputData);
-      add_cartesion_destination(pathLocal, inputData, svoLocal.curTheta);
+      add_cartesion_destination(pathLocal, inputData, urConfigData.curTheta);
       break;
     // add velocity command (v/V)
     case 'v': case 'V':
@@ -190,7 +193,7 @@ void teleoperate_robot(void) {
     case 's': case 'S': pathQueue.push(pathLocal); break;
     /* *** Navigation *** */
     // go home (g/G)
-    case 'g': case 'G': robot_go_home(svoLocal.curTheta); break;
+    case 'g': case 'G': robot_go_home(urConfigData.curTheta); break;
     // move foward -X (h/H)
     case 'h': case 'H':
       inputData[6] = increTime; inputData[0] = -1;
@@ -236,19 +239,19 @@ void teleoperate_robot(void) {
       add_displacement(pathLocal, inputData);
       break;
     // Show the information of robot
-    case 'p': case 'P': display_current_information(svoLocal); break;
+    case 'p': case 'P': display_current_information(urConfigData); break;
     // Test
     case 't': 
-      tiltAngle = -M_PI/2 - svoLocal.curTheta[1] - svoLocal.curTheta[2]
-        - svoLocal.curTheta[3];
-      state = {svoLocal.curPos[0], svoLocal.curPos[2], tiltAngle};
+      tiltAngle = -M_PI/2 - urConfigData.curTheta[1] - urConfigData.curTheta[2]
+        - urConfigData.curTheta[3];
+      state = {urConfigData.curPos[0], urConfigData.curPos[2], tiltAngle};
       circleCmd = {500, 20, 20*Deg2Rad};
       pivot_about_points(state, circleCmd, 3);
       break;
     // Invalid command
     default: std::cout << "==>> Unknow command." << std::endl; break;
     }
-    config.update(&svoLocal);
+    urconfig.update(&urConfigData);
   } // while(command != 27)
   display_menu();
 }

@@ -6,7 +6,6 @@
 #define UR_KINEMATICS_H
 
 #include "common.h"
-// #include "matrix.h"
 #include <vector>
 #include <eigen3/Eigen/Dense>
 

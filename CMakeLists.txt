@@ -23,12 +23,12 @@ function(build_driver)
     src/sensor_driver.cpp
     src/sensor_interface.cpp
   )
-  add_library(ur5e SHARED
-    src/UR5eDriver/ur_driver.cpp
-    src/UR5eDriver/robot_state.cpp
-    src/UR5eDriver/robot_state_RT.cpp
-    src/UR5eDriver/ur_communication.cpp
-    src/UR5eDriver/ur_communication_RT.cpp
+  add_library(urdriver SHARED
+    src/URDriver/ur_driver.cpp
+    src/URDriver/robot_state.cpp
+    src/URDriver/robot_state_RT.cpp
+    src/URDriver/ur_communication.cpp
+    src/URDriver/ur_communication_RT.cpp
   )
 endfunction(build_driver)
 if(BUILD_NEW_DRIVER)
@@ -91,6 +91,7 @@ add_executable(ur_bin
   src/sensor_interface.cpp
   src/camera_driver.cpp
   src/camera_interface.cpp
+  src/ur5e_interface.cpp
 )
 
 # Link the demo_lib target with the demo_bin target
@@ -102,5 +103,5 @@ add_executable(ur_bin
 target_link_libraries(ur_bin -pthread)
 target_link_libraries(ur_bin ${OpenCV_LIBS})
 target_link_libraries(ur_bin -lrealsense2)
-target_link_libraries(ur_bin ur5e robotiq camera forceSensor Ginkgo_Driver)
+target_link_libraries(ur_bin urdriver robotiq camera forceSensor Ginkgo_Driver)
 

@@ -1,7 +1,6 @@
 #include "../include/path_planning.h"
 
 // Shared variable
-extern Config config;
 extern PathQueue pathQueue;
 
 void add_joint_destination(PATH& path, NUMBUF& inputData) {

@@ -4,34 +4,34 @@
 /* 
  * @func  : calc_ref_joint
  * @brief : 计算轨迹插补点
- * @param : svo_共享变量
+ * @param : urConfigData_共享变量
  * @return: 下一插补点处的 关节角/位姿
  */
-void calc_ref_joint(SVO& svo) {
+void calc_ref_joint(urConfig::Data& urConfigData) {
   // 当前路径执行的时间
-  double offsetTime = svo.time - svo.path.beginTime;
-  double freq = svo.path.freq;
+  double offsetTime = urConfigData.time - urConfigData.path.beginTime;
+  double freq = urConfigData.path.freq;
   double delQ = 8*Deg2Rad;
 
   // 角度伺服
-  if (svo.path.angleServo) {
-    ARRAY orig = svo.path.orig;
-    ARRAY goal = svo.path.goal;
-    int interpMode = svo.path.interpMode;
-    svo.path.complete = joint_interpolation(
-        offsetTime, freq, interpMode, orig, goal, svo.refTheta);
+  if (urConfigData.path.angleServo) {
+    ARRAY orig = urConfigData.path.orig;
+    ARRAY goal = urConfigData.path.goal;
+    int interpMode = urConfigData.path.interpMode;
+    urConfigData.path.complete = joint_interpolation(
+        offsetTime, freq, interpMode, orig, goal, urConfigData.refTheta);
   } else {
   // 速度伺服
-    svo.path.complete = velocity_interpolation(
-        offsetTime, freq, svo.curTheta, svo.refTheta, svo.path.velocity);
+    urConfigData.path.complete = velocity_interpolation(
+        offsetTime, freq, urConfigData.curTheta, urConfigData.refTheta, urConfigData.path.velocity);
   } // if {} else {}
 
   // 角度限位
   for (int i=0; i<6; ++i) {
-    if (svo.refTheta[i] - svo.curTheta[i] > delQ) {
-      svo.refTheta[i] = svo.curTheta[i] + delQ;
-    } else if (svo.refTheta[i] - svo.curTheta[i] < -delQ) {
-      svo.refTheta[i] = svo.curTheta[i] - delQ;
+    if (urConfigData.refTheta[i] - urConfigData.curTheta[i] > delQ) {
+      urConfigData.refTheta[i] = urConfigData.curTheta[i] + delQ;
+    } else if (urConfigData.refTheta[i] - urConfigData.curTheta[i] < -delQ) {
+      urConfigData.refTheta[i] = urConfigData.curTheta[i] - delQ;
     }
   }
 } // calc_ref_joint()

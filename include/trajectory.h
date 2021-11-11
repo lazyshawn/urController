@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "ur_kinematics.h"
+#include "ur5e_interface.h"
 
 #define INTERP_SIN 0
 #define INTERP_5JI 1
@@ -14,7 +15,7 @@
 #define JNT_PATH_3JI_FF 300
 #define TRAJECTORY_LENGTH 20
 
-void calc_ref_joint(SVO& svo);
+void calc_ref_joint(urConfig::Data& urConfigData);
 bool joint_interpolation(double offsetTime, double freq, int interpMode, 
     ARRAY orig, ARRAY displacement, ARRAY& refVal);
 bool velocity_interpolation(double offsetTime, double freq, THETA curTheta, 

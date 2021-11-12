@@ -1,16 +1,20 @@
+#include "../include/ur5e_driver.h"
 
-#include "../include/ur_kinematics.h"
-
+/*************************************************************************
+ * ======================================================================
+ * ===                   运动学规划 | Kinematics                      ===
+ * ======================================================================
+*************************************************************************/
 // 各关节角的正余弦值
 double c1, s1, c2, s2, c3, s3, c4, s4, c5, s5, c6, s6, c23, s23, c234, s234;
 // 关节角度
 double q2, q3, q4;
 
-/* 
+/*************************************************************************
+ * @func : calcJnt
  * @brief: 更新各关节角的正余弦值;
  * @param: 关节角向量;
- * @return: ;
- */
+*************************************************************************/
 int calcJnt(THETA q) {
   if (q.size() != 6) return -1;
   c1 = cos(q[0]);  s1 = sin(q[0]);
@@ -62,11 +66,13 @@ THETA plane_jacobian() {
 
 }
 
-/* 
+
+/*************************************************************************
+ * @func : ur_kinematics
  * @brief: M-DH求解机械臂运动学
  * @param: MATRIX_D rx_h - 旋转矩阵;
  * @return: 末端位姿向量(6x1)
- */
+*************************************************************************/
 Vec6d ur_kinematics(Mat3d& ori_hnd) {
   double hori, vert;
   // 末端位置, 轴角 , 欧拉角
@@ -99,11 +105,11 @@ Vec6d ur_kinematics(Mat3d& ori_hnd) {
   return pose;
 }
 
-/* 
- * @brief: 计算从关节空间到笛卡尔空间的雅克比矩阵，及其逆矩阵、转置矩阵
- * @param: jnt; jcbn-雅克比矩阵结构体指针;
+/*************************************************************************
+ * @func : ur_jacobian
+ * @brief: 计算从关节空间到笛卡尔空间的雅克比矩阵
  * @return: 雅克比矩阵
- */
+*************************************************************************/
 Mat6d ur_jacobian() {
   Mat6d jcb;
 
@@ -301,4 +307,94 @@ THETA ur_InverseKinematics(Vec3d hand_p, Mat3d rotMat, THETA curTheta) {
   }
   return qJoint;
 }
+
+
+/*************************************************************************
+ * ======================================================================
+ * ===             轨迹插补 | Trajectory Interpolation                ===
+ * ======================================================================
+*************************************************************************/
+/*************************************************************************
+ * @func  : velocity_interpolation
+ * @brief : 利用 Jacobian 矩阵进行速度伺服控制 
+ * @param : offsetTime_运动时间; freq_插补频率; curTheta_当前关节角; 
+ *          refTheta_下一时刻关节角; velocity_速度命令
+ * @return: 修改_下一时刻的关节角，返回_轨迹完成标志位
+*************************************************************************/
+bool velocity_interpolation(double offsetTime, double freq, THETA curTheta, 
+    THETA& refTheta, ARRAY velocity) {
+  Vec6d velo, dq;
+  double time = freq * (offsetTime+SERVO_TIME);
+
+  for (int i=0; i<6; ++i) velo[i] = velocity[i];
+  // 用参考角度计算各关节角的正余弦值
+  calcJnt(refTheta);
+  // 计算 Jacobian 矩阵
+  Mat6d ijcb = ur_jacobian().inverse();
+  dq = ijcb*velo;
+  // 当前运动时间占总时间的比例大于1，即超过预定时间，插值点不变，返回已完成
+  if (time >= 1) {
+    // 路径停止前，给一定时间让机械臂停止
+    for (int i=0; i<6; ++i) refTheta[i] = refTheta[i];
+    if (time >= 1.1) {
+      return true;
+    }
+  }
+  for (int i=0; i<6; ++i) refTheta[i] += dq(i);
+  return false;
+} // bool velocity_interpolation()
+
+
+/*************************************************************************
+ * @func  : joint_interpolation
+ * @brief : 计算关节空间的位置插补
+ * @param : offsetTime_运动时间; freq_插补频率; interpMode_插补模式; 
+ *          orig_插值起点; goal_插值终点; &refVal_当前时刻插值点位置
+ * @return: 修改_下一时刻的关节角，返回_轨迹完成标志位
+*************************************************************************/
+bool joint_interpolation(double offsetTime, double freq, int interpMode, 
+    ARRAY orig, ARRAY goal, ARRAY& refVal) {
+  // 当前运动时间占总时间的比例 | 已完成的路径占全路径的比例
+  double time = freq * (offsetTime+SERVO_TIME);
+
+  // 超过预定时间，插值点设为终点值，返回已完成
+  if (time >= 1) {
+    refVal = goal;
+    return true;
+  }
+  // 按插补模式在关节空间进行轨迹插补
+  switch (interpMode) {
+  // sin 関数による軌道補間 | sin函数的轨迹插补
+  case INTERP_SIN:
+    for (int i=0; i<6; ++i) {
+      refVal[i] = orig[i] + (goal[i]-orig[i])*time -
+        (goal[i]-orig[i])*sin(2.0*M_PI*time)/(2.0*M_PI);
+    }
+    break;
+  // 1 次関数による軌道補間 | 一次函数的轨迹插补
+  case INTERP_1JI:
+    for (int i=0; i<6; ++i) {
+      refVal[i] = orig[i] + (goal[i] - orig[i]) * time;
+    }
+    break;
+  // 3 次関数による軌道補間 | 3次函数的轨迹插补
+  case INTERP_3JI:
+    for (int i=0; i<6; ++i) {
+      refVal[i] = orig[i] + (goal[i] - orig[i]) * time*time*(3.0-2*time);
+    }
+    break;
+  // 5 次関数による軌道補間 | 5次函数的轨迹插补
+  case INTERP_5JI:
+    for (int i=0; i<6; ++i) {
+      refVal[i] = orig[i] +
+        (goal[i] - orig[i]) * time*time*time*(10.0+time*(-15.0+6.0*time));
+    }
+    break;
+  // ステップ関数による軌道補間 | 阶跃函数的轨迹插补
+  case INTERP_STEP: for (int i=0; i<6; ++i) {refVal[i] = goal[i];} break;
+  default: printf("\n==>> Error! Unknow interpolate mode!\n"); break;
+  } // switch(interpMode)
+  return false;
+} // bool joint_interpolation()
+
 

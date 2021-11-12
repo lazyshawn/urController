@@ -1,7 +1,6 @@
-
 #ifndef SENSOR_DRIVER_H
 #define SENSOR_DRIVER_H
-#include "./sensor_can_driver.h"
+#include "sensor_can_driver.h"
 
 #include <array>
 

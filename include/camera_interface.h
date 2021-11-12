@@ -1,9 +1,7 @@
 #ifndef CAMERA_INTERFACE_H
 #define CAMERA_INTERFACE_H
-
-#include <mutex>
-#include <condition_variable>
 #include "camera_driver.h"
+
 #include "thread_pool.h"
 
 class ObjState {

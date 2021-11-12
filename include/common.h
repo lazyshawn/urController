@@ -27,8 +27,6 @@
 #include <array>
 #include <cmath>
 
-extern double SERVO_TIME;
-
 // PID 控制参数
 struct GAIN {
   double K_vt[6];

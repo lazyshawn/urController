@@ -1,20 +1,25 @@
 #ifndef UR_INTERFACE_H
 #define UR_INTERFACE_H
+#include "ur5e_driver.h"
 
-#include <mutex>
-#include <condition_variable>
 #include <deque>
+#include <sys/mman.h>  // 内存管理
+#include "common.h"
+#include "thread_pool.h"
 
-#include "../include/common.h"
+// 主线程优先级
+#define MY_PRIORITY (49)
 
 class urConfig {
 public:
   struct Data {
     Data () {
       path.complete = true;
+      statusOn = false;
     }
 
     double time;
+    int statusOn;
     PATH path;
     THETA curTheta, refTheta;
     POS curPos, refPos;
@@ -49,5 +54,21 @@ public:
   void notify_one();
 };
 
+/*************************************************************************
+ * 机械臂伺服程序
+*************************************************************************/
+void robot_thread_function(void);
+
+void calc_ref_joint(urConfig::Data& urConfigData);
+
+/*************************************************************************
+ * 轨迹规划
+*************************************************************************/
+void add_displacement(PATH& path, NUMBUF& inputData);
+void add_joint_destination(PATH& path, NUMBUF& inputData);
+void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta);
+void robot_go_home(THETA curTheta);
+void pivot_about_points(TRIARR& state, TRIARR command, double time);
+void instant_command(THETA curTheta);
 #endif
 

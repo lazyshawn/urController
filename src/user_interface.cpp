@@ -11,8 +11,7 @@ extern PathQueue pathQueue;
 void interface_thread_function(void) {
   urConfig::Data urConfigData;
   char command;
-  std::thread sensor_thread, camera_thread;
-  urConfig::Data urData = urconfig.get_data();
+  std::thread robot_thread, sensor_thread, camera_thread;
 
   display_menu();
   while (threadManager.process != THREAD_EXIT) {
@@ -36,9 +35,14 @@ void interface_thread_function(void) {
     // Next shoot(N). Set for debug.
     case 'n': case 'N': pathQueue.notify_one(); break;
     // Robot.
-    case 'r': case 'R': teleoperate_robot(); break;
-    // Robot.
-    case 't': case 'T': display_current_information(urData);
+    case 'r': case 'R': 
+      if(urConfigData.statusOn == false) {
+        robot_thread = std::thread(robot_thread_function);
+        urConfigData.statusOn = true;
+        threadManager.device.robot = true;
+      }
+      teleoperate_robot();
+      break;
     // 回车和换行
     case 10: case 13: break;
     // Exit (e/E/ESC)
@@ -51,13 +55,18 @@ void interface_thread_function(void) {
     }
     urconfig.update(&urConfigData);
   } // while (threadManager.process != THREAD_EXIT)
+  
+  // Wait for threads
+  if (threadManager.device.robot == true) {
+    robot_thread.join();
+  }
   if (threadManager.device.sensor == true) {
     sensor_thread.join();
   }
   if (threadManager.device.camera == true) {
     camera_thread.join();
   }
-  std::cout << "Program end: display_function." << std::endl;
+  std::cout << "Thread terminated: user_interface_thread" << std::endl;
 } // void interface(void)
 
 
@@ -112,8 +121,6 @@ void display_menu(void) {
 /*************************************************************************
  * @func  : display_current_information
  * @brief : 打印当前时刻系统的状态信息
- * @param : svo
- * @return: 下一插补点处的 关节角/位姿
 *************************************************************************/
 void display_current_information(urConfig::Data urConfigData) {
   printf("\n--------------------- Current Information -----------------------\n");
@@ -127,19 +134,19 @@ void display_current_information(urConfig::Data urConfigData) {
   default: printf("Error path mode\n");
   }
   printf("==>> Current Joint angle[deg]:\n%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
-       urConfigData.curTheta[0] * Rad2Deg, urConfigData.curTheta[1] * Rad2Deg,
-       urConfigData.curTheta[2] * Rad2Deg, urConfigData.curTheta[3] * Rad2Deg,
-       urConfigData.curTheta[4] * Rad2Deg, urConfigData.curTheta[5] * Rad2Deg);
+       urConfigData.curTheta[0] * rad2deg, urConfigData.curTheta[1] * rad2deg,
+       urConfigData.curTheta[2] * rad2deg, urConfigData.curTheta[3] * rad2deg,
+       urConfigData.curTheta[4] * rad2deg, urConfigData.curTheta[5] * rad2deg);
 
   printf("==>> Goal  Joint  Angle [Deg]:\n%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
-       urConfigData.path.goal[0] * Rad2Deg, urConfigData.path.goal[1] * Rad2Deg,
-       urConfigData.path.goal[2] * Rad2Deg, urConfigData.path.goal[3] * Rad2Deg,
-       urConfigData.path.goal[4] * Rad2Deg, urConfigData.path.goal[5] * Rad2Deg);
+       urConfigData.path.goal[0] * rad2deg, urConfigData.path.goal[1] * rad2deg,
+       urConfigData.path.goal[2] * rad2deg, urConfigData.path.goal[3] * rad2deg,
+       urConfigData.path.goal[4] * rad2deg, urConfigData.path.goal[5] * rad2deg);
   printf("==>> Current Position of hand:\n"
          "X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[deg]\n");
   printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
        urConfigData.curPos[0], urConfigData.curPos[1], urConfigData.curPos[2],
-       urConfigData.curPos[3]*Rad2Deg, urConfigData.curPos[4]*Rad2Deg, urConfigData.curPos[5]*Rad2Deg);
+       urConfigData.curPos[3]*rad2deg, urConfigData.curPos[4]*rad2deg, urConfigData.curPos[5]*rad2deg);
 
   printf("==>> Goal Displacement of hand:\n"
          "X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[deg]\n");
@@ -155,10 +162,10 @@ void display_current_information(urConfig::Data urConfigData) {
  * @breif: 机械臂键盘遥操作
 *************************************************************************/
 void teleoperate_robot(void) {
-  urConfig::Data urConfigData = urconfig.get_data();
+  urConfig::Data urConfigData;
   NUMBUF inputData;
   PATH pathLocal;
-  char command;
+  char command = 0;
   double increTime = 0.2, tiltAngle;
   TRIARR state, circleCmd;
 
@@ -168,10 +175,11 @@ void teleoperate_robot(void) {
     "*******************************************************" << std::endl;
   while (command != 27) {
     // 输入数组置零
-    for (int i=0; i<get_array_size(inputData); ++i) inputData[i] = 0;
+    for (int i=0; i<8; ++i) inputData[i] = 0;
     inputData[8] = -1;
     // Wait command
     command = scanKeyboard();
+    urConfigData = urconfig.get_data();
 
     switch(command) {
     // add destination in Cartesion space (c/C)
@@ -254,5 +262,5 @@ void teleoperate_robot(void) {
     urconfig.update(&urConfigData);
   } // while(command != 27)
   display_menu();
-}
+} // void teleoperate_robot(void)
 

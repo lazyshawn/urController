@@ -5,20 +5,11 @@
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
 
-// 主线程优先级
-#define MY_PRIORITY (49)
-
 #include <sys/mman.h>  // 内存管理
 #include <thread>   // 线程管理
-#include "common.h"
-#include "data_exchange.h"
-#include "trajectory.h"
-#include "path_planning.h"
+#include <mutex>
+#include <condition_variable>
 #include "system_time.h"
-#include "user_interface.h"
-#include "ur_kinematics.h"
-#include "ur_driver.h"
-#include "robotiq_driver.h"
 #include "sensor_interface.h"
 #include "camera_interface.h"
 #include "ur5e_interface.h"
@@ -31,15 +22,16 @@ struct ThreadManager {
     process = THREAD_INIT;
     device.camera = false;
     device.sensor = false;
+    device.robot  = false;
   }
   struct Device {
-    bool camera, sensor;
+    bool camera, sensor, robot;
   }device;
   int process;
 };
 
 void master_thread_function(void);
-void servo_function(UrDriver* ur, RobotiQ* rbtQ);
+void servo_function(UrDriver* ur);
 
 #endif
 

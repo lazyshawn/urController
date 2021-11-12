@@ -1,9 +1,7 @@
 #ifndef SENSOR_INTERFACE_H
 #define SENSOR_INTERFACE_H
-
-#include <mutex>
-#include <condition_variable>
 #include "sensor_driver.h"
+
 #include "thread_pool.h"
 
 /* 传感器采集的共享数据 */

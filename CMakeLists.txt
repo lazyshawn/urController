@@ -80,17 +80,15 @@ target_link_libraries(forceSensor_bin Ginkgo_Driver)
 # Main
 add_executable(ur_bin
   src/main.cpp
-  src/trajectory.cpp
   src/system_time.cpp
   src/thread_pool.cpp
-  src/ur_kinematics.cpp
-  src/path_planning.cpp
   src/data_exchange.cpp
   src/user_interface.cpp
   src/sensor_driver.cpp
   src/sensor_interface.cpp
   src/camera_driver.cpp
   src/camera_interface.cpp
+  src/ur5e_driver.cpp
   src/ur5e_interface.cpp
 )
 

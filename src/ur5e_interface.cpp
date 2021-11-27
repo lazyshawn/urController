@@ -118,7 +118,7 @@ void robot_thread_function(void) {
       = urConfigData.curTheta[i] = jnt_angle[i];
   }
   // 同步全局变量
-  std::cout << "==>> Robot is ready." << std::endl;
+  std::cout << "\n==>> Robot is ready.\n" << std::endl;
   urconfig.update(&urConfigData);
 
   /* Declare ourself as a real time task */
@@ -181,8 +181,6 @@ void robot_thread_function(void) {
 void servo_function(UrDriver* ur) {
   // Copy global urConfig::Data
   urConfig::Data urConfigData = urconfig.get_data();
-  Mat3d oriMat;
-  Vec6d pose;
   std::vector<double> jnt_angle(6);
 
   // Get the current time
@@ -202,10 +200,9 @@ void servo_function(UrDriver* ur) {
   /* Update the kinematics calculation*/
   // 计算各关节角的正余弦值
   calcJnt(urConfigData.curTheta);
-  // 返回末端夹持点的位置坐标
-  pose = ur_kinematics(oriMat);
+  // 正运动学求解
+  ur_kinematics(urConfigData.tranMat);
   // Current position of the end_link
-  for (int i = 0; i < 6; i++) {urConfigData.curPos[i] = pose(i);}
 
   /* Pop path info */
   if (urConfigData.path.complete) {
@@ -309,20 +306,32 @@ void add_displacement(PATH& path, NUMBUF& inputData) {
 
 void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta) {
   double oriR, oriP, oriY;
-  Mat3d rotMat;
+  Mat4d tranMat;
   // 角度伺服标志置位
   path.angleServo = ON;
   path.interpMode = 2;
   // 读入路径信息
   path.freq = 1/inputData[6];
   // 位置
-  Vec3d handPos(inputData[0], DH_D4, inputData[2]);
+  tranMat(0,3) = inputData[0];
+  tranMat(1,3) = DH_D4;
+  tranMat(2,3) = inputData[2];
   // 姿态
   oriP = inputData[3] * Deg2Rad;
-  rotMat(0,0) = cos(oriP); rotMat(2,0) =  sin(oriP); rotMat(1,1) = -1;
-  rotMat(0,2) = sin(oriP); rotMat(2,2) = -cos(oriP);
+  tranMat(0,0) = cos(oriP); tranMat(2,0) =  sin(oriP); tranMat(1,1) = -1;
+  tranMat(0,2) = sin(oriP); tranMat(2,2) = -cos(oriP);
   path.fingerPos = inputData[8];
-  path.goal = ur_InverseKinematics(handPos, rotMat, curTheta);
+  path.goal = ur_InverseKinematics(tranMat, curTheta);
+  pathQueue.push(path);
+}
+
+void go_to_pose(Mat4d tranMat, THETA curTheta) {
+  PATH path;
+  // 角度伺服标志置位
+  path.angleServo = ON;
+  path.interpMode = 2;
+  path.freq = 1.0/5;
+  path.goal = ur_InverseKinematics(tranMat, curTheta);
   pathQueue.push(path);
 }
 

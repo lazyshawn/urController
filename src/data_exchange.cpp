@@ -110,25 +110,25 @@ void ExpDataWrite() {
 
   printf("saving data ... \n");
   for (int i = 0; i < Exp_data_index; ++i) {
-    f_curpos << std::left
-      << std::setw(len) << Exp_data[i].time
-      << std::setw(len) << Exp_data[i].curPos[0]
-      << std::setw(len) << Exp_data[i].curPos[1]
-      << std::setw(len) << Exp_data[i].curPos[2]
-      << std::setw(len) << Exp_data[i].curPos[3]*Rad2Deg
-      << std::setw(len) << Exp_data[i].curPos[4]*Rad2Deg
-      << std::setw(len) << Exp_data[i].curPos[5]*Rad2Deg
-      << std::endl;
-
-    f_refpos << std::left
-      << std::setw(len) << Exp_data[i].time
-      << std::setw(len) << Exp_data[i].refPos[0]
-      << std::setw(len) << Exp_data[i].refPos[1]
-      << std::setw(len) << Exp_data[i].refPos[2]
-      << std::setw(len) << Exp_data[i].refPos[3]*Rad2Deg
-      << std::setw(len) << Exp_data[i].refPos[4]*Rad2Deg
-      << std::setw(len) << Exp_data[i].refPos[5]*Rad2Deg
-      << std::endl;
+    // f_curpos << std::left
+    //   << std::setw(len) << Exp_data[i].time
+    //   << std::setw(len) << Exp_data[i].curTwist[0]
+    //   << std::setw(len) << Exp_data[i].curTwist[1]
+    //   << std::setw(len) << Exp_data[i].curTwist[2]
+    //   << std::setw(len) << Exp_data[i].curTwist[3]*Rad2Deg
+    //   << std::setw(len) << Exp_data[i].curTwist[4]*Rad2Deg
+    //   << std::setw(len) << Exp_data[i].curTwist[5]*Rad2Deg
+    //   << std::endl;
+    //
+    // f_refpos << std::left
+    //   << std::setw(len) << Exp_data[i].time
+    //   << std::setw(len) << Exp_data[i].refTwist[0]
+    //   << std::setw(len) << Exp_data[i].refTwist[1]
+    //   << std::setw(len) << Exp_data[i].refTwist[2]
+    //   << std::setw(len) << Exp_data[i].refTwist[3]*Rad2Deg
+    //   << std::setw(len) << Exp_data[i].refTwist[4]*Rad2Deg
+    //   << std::setw(len) << Exp_data[i].refTwist[5]*Rad2Deg
+    //   << std::endl;
 
     f_curtheta << std::left
       << std::setw(len) << Exp_data[i].time

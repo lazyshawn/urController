@@ -14,15 +14,23 @@
 #include "camera_interface.h"
 #include "ur5e_interface.h"
 
+
+/* **************** 线程管理 **************** */
+// 只在最顶层使用: master/user_interface
+// 线程状态
 #define THREAD_INIT 0
 #define THREAD_EXIT 255
-
+// 节点状态
+#define OFF 0
+#define ON 1
+#define IDLE 2
 struct ThreadManager {
   ThreadManager() {
+    memset(&device, 0, sizeof(Device));
     process = THREAD_INIT;
-    device.camera = false;
-    device.sensor = false;
-    device.robot  = false;
+    // device.camera = false;
+    // device.sensor = false;
+    // device.robot  = false;
   }
   struct Device {
     bool camera, sensor, robot;

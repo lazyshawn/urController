@@ -9,11 +9,6 @@
 #define INTEGRATE_CAMERA
 #define INTEGRATE_SENSOR
 
-#define ON 1
-#define OFF 0
-#define INIT_C 0
-#define EXIT_C 255
-
 // 实验数据的最大保存数
 #define EXP_DATA_LENGTH 10000
 #define EXP_DATA_INTERVAL 1

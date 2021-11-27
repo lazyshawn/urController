@@ -96,6 +96,9 @@ int listen (int sockfd, int n);
 
 ## ✨ 实例演示
 ```cpp
+/*************************************************************************
+ * 服务端程序
+*************************************************************************/
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -142,6 +145,7 @@ int main(int argc, char** argv) {
   return 0;
 }
 ```
+
 调试方法：安装Linux下常用的命令行网络测试工具`netcat`，可以用来读写TCP/UDP数据。
 ```bash
 # 远程连接并开始发送数据

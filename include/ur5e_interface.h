@@ -15,14 +15,13 @@ public:
   struct Data {
     Data () {
       path.complete = true;
-      statusOn = false;
     }
 
     double time;
-    int statusOn;
     PATH path;
     THETA curTheta, refTheta;
-    POS curPos, refPos;
+    // Vec6d curTwist, refTwist;
+    Mat4d tranMat;
   };
 
   // 复制 Config
@@ -70,5 +69,6 @@ void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta);
 void robot_go_home(THETA curTheta);
 void pivot_about_points(TRIARR& state, TRIARR command, double time);
 void instant_command(THETA curTheta);
+void go_to_pose(Mat4d tran, THETA curTheta);
 #endif
 

@@ -68,7 +68,7 @@ add_executable(camera_bin
   src/camera_driver.cpp
 )
 find_package(OpenCV REQUIRED)
-target_link_libraries(camera_bin ${OpenCV_LIBS})
+target_link_libraries(camera_bin ${OpenCV_LIBS} -lopencv_aruco)
 target_link_libraries(camera_bin -lrealsense2)
 # Force Sensor
 add_executable(forceSensor_bin
@@ -77,6 +77,11 @@ add_executable(forceSensor_bin
   src/sensor_main.cpp
 )
 target_link_libraries(forceSensor_bin Ginkgo_Driver)
+# Gripper
+add_executable(crg_bin
+  src/gripper_driver.cpp
+  src/gripper_main.cpp
+)
 # Main
 add_executable(ur_bin
   src/main.cpp
@@ -99,7 +104,7 @@ add_executable(ur_bin
 # find_package(Threads)
 # target_link_libraries(ur_bin ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(ur_bin -pthread)
-target_link_libraries(ur_bin ${OpenCV_LIBS})
+target_link_libraries(ur_bin ${OpenCV_LIBS} -lopencv_aruco)
 target_link_libraries(ur_bin -lrealsense2)
 target_link_libraries(ur_bin urdriver robotiq camera forceSensor Ginkgo_Driver)
 

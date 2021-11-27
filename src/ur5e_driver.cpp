@@ -73,36 +73,30 @@ THETA plane_jacobian() {
  * @param: MATRIX_D rx_h - 旋转矩阵;
  * @return: 末端位姿向量(6x1)
 *************************************************************************/
-Vec6d ur_kinematics(Mat3d& ori_hnd) {
+int ur_kinematics(Mat4d& tranMat) {
   double hori, vert;
-  // 末端位置, 轴角 , 欧拉角
-  Vec3d p_hnd, axisAngle, eulerAngle;
-  Vec6d pose;
 
   hori = DH_D4 + DH_D6*c5;
   vert = DH_A2*c2 + DH_A3*c23 - DH_D5*s234 + DH_D6*c234*s5;
   // 位置向量
-  p_hnd(0) = -s1*hori + c1*vert;
-  p_hnd(1) =  c1*hori + s1*vert;
-  p_hnd(2) = DH_D1 - DH_A2*s2 - DH_A3*s23 - DH_D5*c234 - DH_D6*s234*s5;
+  tranMat(0,3) = -s1*hori + c1*vert;
+  tranMat(1,3) =  c1*hori + s1*vert;
+  tranMat(2,3) = DH_D1 - DH_A2*s2 - DH_A3*s23 - DH_D5*c234 - DH_D6*s234*s5;
   // 旋转矩阵
-  ori_hnd(0,0) = c6*(s1*s5 + c1*c234*c5) - s234*c1*s6;
-  ori_hnd(0,1) = -s6*(s1*s5 + c234*c1*c5) - s234*c1*c6;
-  ori_hnd(0,2) = c234*c1*s5 - c5*s1;
-  ori_hnd(1,0) = -c6*(c1*s5 - c234*c5*s1) - s234*s1*s6;
-  ori_hnd(1,1) = s6*(c1*s5 - c234*c5*s1) - s234*c6*s1;
-  ori_hnd(1,2) = c1*c5 + c234*s1*s5;
-  ori_hnd(2,0) = -c234*s6 - s234*c5*c6;
-  ori_hnd(2,1) = s234*c5*s6 - c234*c6;
-  ori_hnd(2,2) = -s234*s5;
+  tranMat(0,0) = c6*(s1*s5 + c1*c234*c5) - s234*c1*s6;
+  tranMat(0,1) = -s6*(s1*s5 + c234*c1*c5) - s234*c1*c6;
+  tranMat(0,2) = c234*c1*s5 - c5*s1;
+  tranMat(1,0) = -c6*(c1*s5 - c234*c5*s1) - s234*s1*s6;
+  tranMat(1,1) = s6*(c1*s5 - c234*c5*s1) - s234*c6*s1;
+  tranMat(1,2) = c1*c5 + c234*s1*s5;
+  tranMat(2,0) = -c234*s6 - s234*c5*c6;
+  tranMat(2,1) = s234*c5*s6 - c234*c6;
+  tranMat(2,2) = -s234*s5;
+  // 齐次项
+  tranMat(3,0) = tranMat(3,1) = tranMat(3,2) = 0;
+  tranMat(3,3) = 1;
 
-  // AxisAngle = RotMat2AxisAngle(ori_hnd);
-  eulerAngle = RotMat2EulerAngle(ori_hnd);
-  for (int i=0; i<3; ++i) {
-    pose(i) = p_hnd(i);
-    pose(i+3) = eulerAngle(i);
-  }
-  return pose;
+  return 1;
 }
 
 /*************************************************************************
@@ -259,13 +253,13 @@ Vec3d RotMat2AxisAngle(Mat3d rotMat) {
   }
 }
 
-THETA ur_InverseKinematics(Vec3d hand_p, Mat3d rotMat, THETA curTheta) {
+THETA ur_InverseKinematics(Mat4d tranMat, THETA curTheta) {
   std::array<double,6> qJoint;
   double c1, s1, c2, s2, c3, s3, c4, s4, c5, s5, c6, s6;
   double nx, ny, nz, ox, oy, oz, ax, ay, az, px, py, pz, temp1, temp2;
-  nx = rotMat(0,0);  ox = rotMat(0,1);  ax = rotMat(0,2);  px = hand_p(0);
-  ny = rotMat(1,0);  oy = rotMat(1,1);  ay = rotMat(1,2);  py = hand_p(1);
-  nz = rotMat(2,0);  oz = rotMat(2,1);  az = rotMat(2,2);  pz = hand_p(2);
+  nx = tranMat(0,0);  ox = tranMat(0,1);  ax = tranMat(0,2);  px = tranMat(0,3);
+  ny = tranMat(1,0);  oy = tranMat(1,1);  ay = tranMat(1,2);  py = tranMat(1,3);
+  nz = tranMat(2,0);  oz = tranMat(2,1);  az = tranMat(2,2);  pz = tranMat(2,3);
 
   // 关节角1 (t15_24)
   double A1 = py - ay*DH_D6, B1 = -px + ax*DH_D6;

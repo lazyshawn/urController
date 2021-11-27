@@ -17,7 +17,6 @@ void interface_thread_function(void) {
   while (threadManager.process != THREAD_EXIT) {
     // Wait command
     command = scanKeyboard();
-    urConfigData = urconfig.get_data();
     // Run command
     switch (command) {
     // Start camera
@@ -36,12 +35,12 @@ void interface_thread_function(void) {
     case 'n': case 'N': pathQueue.notify_one(); break;
     // Robot.
     case 'r': case 'R': 
-      if(urConfigData.statusOn == false) {
+      if(threadManager.device.robot == OFF) { // 避免重复启动
         robot_thread = std::thread(robot_thread_function);
-        urConfigData.statusOn = true;
-        threadManager.device.robot = true;
+        threadManager.device.robot = ON;
       }
       teleoperate_robot();
+      threadManager.device.robot = IDLE;  // 机械臂线程挂起
       break;
     // 回车和换行
     case 10: case 13: break;
@@ -53,17 +52,16 @@ void interface_thread_function(void) {
     // Invalid command
     default: std::cout << "==>> Unknow command." << std::endl; break;
     }
-    urconfig.update(&urConfigData);
   } // while (threadManager.process != THREAD_EXIT)
   
   // Wait for threads
-  if (threadManager.device.robot == true) {
+  if (threadManager.device.robot != OFF) {
     robot_thread.join();
   }
-  if (threadManager.device.sensor == true) {
+  if (threadManager.device.sensor != OFF) {
     sensor_thread.join();
   }
-  if (threadManager.device.camera == true) {
+  if (threadManager.device.camera != OFF) {
     camera_thread.join();
   }
   std::cout << "Thread terminated: user_interface_thread" << std::endl;
@@ -123,6 +121,7 @@ void display_menu(void) {
  * @brief : 打印当前时刻系统的状态信息
 *************************************************************************/
 void display_current_information(urConfig::Data urConfigData) {
+  TWIST twist;
   printf("\n--------------------- Current Information -----------------------\n");
   printf("==>> path frequency = %f [Hz]\n", urConfigData.path.freq);
   switch (urConfigData.path.interpMode) {
@@ -133,6 +132,7 @@ void display_current_information(urConfig::Data urConfigData) {
   case 4: printf("==>> path mode: Step\n"); break;
   default: printf("Error path mode\n");
   }
+  std::cout << urConfigData.tranMat << std::endl;
   printf("==>> Current Joint angle[deg]:\n%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
        urConfigData.curTheta[0] * rad2deg, urConfigData.curTheta[1] * rad2deg,
        urConfigData.curTheta[2] * rad2deg, urConfigData.curTheta[3] * rad2deg,
@@ -145,8 +145,8 @@ void display_current_information(urConfig::Data urConfigData) {
   printf("==>> Current Position of hand:\n"
          "X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[deg]\n");
   printf("%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%.2f\n",
-       urConfigData.curPos[0], urConfigData.curPos[1], urConfigData.curPos[2],
-       urConfigData.curPos[3]*rad2deg, urConfigData.curPos[4]*rad2deg, urConfigData.curPos[5]*rad2deg);
+       twist[0], twist[1], twist[2],
+       twist[3]*rad2deg, twist[4]*rad2deg, twist[5]*rad2deg);
 
   printf("==>> Goal Displacement of hand:\n"
          "X[mm]\tY[mm]\tZ[mm]\tAlpha[deg]\tBeta[deg]\tGama[deg]\n");
@@ -168,12 +168,13 @@ void teleoperate_robot(void) {
   char command = 0;
   double increTime = 0.2, tiltAngle;
   TRIARR state, circleCmd;
+  bool process = true;
 
   std::cout << 
     "*******************************************************\n" <<
     "=== Remote control of the robot \n" <<
     "*******************************************************" << std::endl;
-  while (command != 27) {
+  while (process) {
     // 输入数组置零
     for (int i=0; i<8; ++i) inputData[i] = 0;
     inputData[8] = -1;
@@ -252,9 +253,13 @@ void teleoperate_robot(void) {
     case 't': 
       tiltAngle = -M_PI/2 - urConfigData.curTheta[1] - urConfigData.curTheta[2]
         - urConfigData.curTheta[3];
-      state = {urConfigData.curPos[0], urConfigData.curPos[2], tiltAngle};
+      // state = {urConfigData.curTwist[0], urConfigData.curTwist[2], tiltAngle};
       circleCmd = {500, 20, 20*Deg2Rad};
       pivot_about_points(state, circleCmd, 3);
+      break;
+    case 27:
+      process = false;
+      std::cout << "=== Back to main manue. \n" << std::endl;
       break;
     // Invalid command
     default: std::cout << "==>> Unknow command." << std::endl; break;

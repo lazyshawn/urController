@@ -21,17 +21,21 @@ void master_thread_function(void) {
   ForceData forceData;
   ObjState::Data objStateData;
 
-  // while (threadManager.process != THREAD_EXIT) {
-  //   urConfigData = urconfig.get_data();
-  //   forceData = force.get_copy();
-  //   objStateData = objState.get_data();
-  //
-  //   if(objStateData.flag != true) continue;
-  //   break;
-  // }
-  // imshow("Display color Image", objStateData.img);
-  // cv::waitKey(2000);
-  // cv::destroyAllWindows();
+  Eigen::Matrix<double,4,4> goalPose;
+
+  while (threadManager.process != THREAD_EXIT) {
+    urConfigData = urconfig.get_data();
+    forceData = force.get_copy();
+    objStateData = objState.get_data();
+
+    if (objStateData.flag == true) {
+      goalPose = urConfigData.tranMat * objStateData.markerPose;
+      goalPose(2,3) = urConfigData.tranMat(2,3);  // 高度不变
+      std::cout << goalPose << std::endl;
+      go_to_pose(goalPose, urConfigData.curTheta);
+      break;
+    }
+  }
   std::cout << "Thread terminated: master_thread" << std::endl;
 }
 

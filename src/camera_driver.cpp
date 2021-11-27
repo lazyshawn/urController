@@ -3,7 +3,7 @@
 /*************************************************************************
  * @class: Camera
 *************************************************************************/
-// 构造函数
+/* **************** 构造函数 **************** */
 Camera::Camera(){
   // Create a configuration for configuring the pipeline
   rs2::config cfg;
@@ -12,14 +12,21 @@ Camera::Camera(){
 
   // 启动设备的管道配置文件, 开始传送数据流
   selection = pipe.start(cfg);
+
+  // 读取内参
+  auto stream = selection.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
+  intr = stream.get_intrinsics(); // Calibration data
+
+  extrMat << 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
+  set_extrMat(extrMat);
 }
 
-// 析构函数
+/* **************** 析构函数 **************** */
 Camera::~Camera(){
   pipe.stop();
 }
 
-// 获取一帧彩色图像
+/* **************** 获取一帧彩色图像 **************** */
 cv::Mat Camera::get_color_frame() {
   frames = pipe.wait_for_frames(); // 等待下一帧
   color_frame = frames.get_color_frame();
@@ -29,7 +36,7 @@ cv::Mat Camera::get_color_frame() {
   return color;
 }
 
-// 获取一帧深度图像
+/* **************** 获取一帧深度图像 **************** */
 cv::Mat Camera::get_depth_frame() {
   frames = pipe.wait_for_frames(); // 等待下一帧
   // 获取深度图, 加颜色滤镜
@@ -40,7 +47,16 @@ cv::Mat Camera::get_depth_frame() {
   return depth;
 }
 
-// 生成一个视频记录对象
+/* **************** 设定外参 **************** */
+void Camera::set_extrMat(Eigen::Matrix<double,4,4> tranMat) {
+  extrMat = tranMat;
+}
+/* **************** 获取外参 **************** */
+Eigen::Matrix<double,4,4> Camera::get_extrMat() {
+  return extrMat;
+}
+
+/* **************** 生成一个视频记录对象 **************** */
 cv::VideoWriter Camera::create_recorder() {
   // cv::VideoWriter outputVideo("test.avi",
   //     cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 30.0, cv::Size(640, 480));
@@ -57,112 +73,70 @@ cv::VideoWriter Camera::create_recorder() {
   return outputVideo;
 }
 
-// 采集用于标定的棋盘格图片
-void Camera::sample_photos_for_calibration() {
-  std::string picsDir = calibrationDir;
-  cv::Mat sampleFrame;
-  char fileName[20];
-  bool keepSample = true;
-  int counter = 0;
-  while (keepSample) {
-    sampleFrame = get_color_frame();
-    imshow("Display color Image", sampleFrame);
-    // Wait command
-    switch (cv::waitKey(10)) {
-    case 'q': keepSample = false; break;
-    // Press 'Space' or 'Enter' to sample
-    case 10: case 13:
-      counter++;
-      std::cout << "Get pics No." << counter << std::endl;
-      sprintf(fileName, "pic_%03d.jpg", counter);
-      imwrite(picsDir+fileName, sampleFrame);
-      break;
-    default: break;
-    }
-  }
-  cv::destroyAllWindows();
+/* **************** 获取像素点在相机坐标系下的 3D 坐标 **************** */
+void Camera::pixel_to_point(float* point3d, float* pixel, float depth) {
+  rs2_deproject_pixel_to_point(point3d, &intr, pixel, depth);
 }
 
-// 打开棋盘格图像，并提取角点
-int Camera::self_calibrate(cv::Size boardSize) {
-  std::string picsDir = calibrationDir;
-  // Creating vector to store vectors of 3D points for each checkerboard image
-  std::vector<std::vector<cv::Point3f>> objpoints;
-  // Creating vector to store vectors of 2D points for each checkerboard image
-  std::vector<std::vector<cv::Point2f>> imgpoints;
-  // Defining the world coordinates for 3D points
-  std::vector<cv::Point3f> objp;
-  for (int i{0}; i < boardSize.height; i++) {
-    for (int j{0}; j < boardSize.width; j++)
-      objp.push_back(cv::Point3f(j, i, 0));
+/* **************** 检测 Marker 位姿 **************** */
+int Camera::detect_marker(cv::Mat frame, int id, float depth, Eigen::Matrix<double,4,4>& markerPose) {
+  cv::Mat frame_show;
+  Eigen::Matrix<double,4,4> T_obj2cam = Eigen::Matrix<double,4,4>::Zero();
+  // 创建字典，这里注意使用Ptr<>，不然无法显示结果
+  cv::Ptr<cv::aruco::Dictionary> dictionary =
+      cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+  std::vector<int> ids;
+  std::vector<std::vector<cv::Point2f>> marker;
+  float origPixel[2], cornPixel[4][2], orig[3], corn[4][3], dx, dy, ds;
+
+  // 检测该帧是否有标记
+  // @param: 待检测的图像, 预先定义的字典对象, 检测出的图像的角点的列表,
+  //         检测出的所有maker的ID列表
+  cv::aruco::detectMarkers(frame, dictionary, marker, ids);
+
+  // 只处理检测到的第一个 Marker
+  if (ids.size() == 0) return 0;
+  for (int i=0; i<ids.size(); ++i) {
+    if (ids[i] == id) break;
+    if (i == ids.size()-1) return 0;
   }
 
-  // Extracting path of individual image stored in a given directory
-  std::vector<cv::String> images;
-  // Path of the folder containing checkerboard images
-  std::string path = picsDir + "*.jpg";
-  cv::glob(path, images);
-
-  cv::Mat frame, gray;
-  // vector to store the pixel coordinates of detected checkerboard corners
-  std::vector<cv::Point2f> corner_pts;
-  bool success;
-  // Looping over all the images in the directory
-  for (int i{0}; i < images.size(); i++) {
-    frame = cv::imread(images[i]);
-    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-    // Finding checker board corners
-    // If desired number of corners are found in the image then success = true
-    success = cv::findChessboardCorners(gray, boardSize, corner_pts,
-        cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE +
-        cv::CALIB_CB_FILTER_QUADS + cv::CALIB_CB_FAST_CHECK);
-    /* If desired number of corner are detected, we refine the pixel coordinates
-     * and display them on the images of checker board */
-    if (success) {
-      cv::TermCriteria criteria(
-          cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 30, 0.001);
-      // refining pixel coordinates for given 2d points.
-      cv::cornerSubPix(gray, corner_pts, cv::Size(11, 11), cv::Size(-1, -1),
-                       criteria);
-      // Displaying the detected corner points on the checker board
-      cv::drawChessboardCorners(frame, boardSize, corner_pts, success);
-      objpoints.push_back(objp);
-      imgpoints.push_back(corner_pts);
-    }
-    cv::imshow("Image", frame);
-    cv::waitKey(0);
+  frame.copyTo(frame_show); //复制一份
+  // 如果有，则标记出来，放入另一个Mat
+  // cv::aruco::drawDetectedMarkers(frame_show, marker, ids);
+  // imshow("detected", frame_show);
+  // 角点的空间坐标
+  for (int i=0; i<3; ++i) {
+    cornPixel[i][0] = marker[0][i].x;
+    cornPixel[i][1] = marker[0][i].y;
+    pixel_to_point(corn[i], cornPixel[i], depth);
   }
-  cv::destroyAllWindows();
-
-  /* Performing camera calibration by passing the value of known
-   * 3D points (objpoints) and corresponding pixel coordinates of
-   * the detected corners (imgpoints) */
-  cv::Mat cameraMatrix, distCoeffs, R, T;
-  double projection = cv::calibrateCamera(objpoints, imgpoints, boardSize, 
-      cameraMatrix, distCoeffs, rvecs, tvecs);
-
-  // 保存内参矩阵
-  cv::FileStorage fs("../build/calibration/calibration.ymal",
-      cv::FileStorage::READ | cv::FileStorage::WRITE);
-  fs << "cameraMatrix" << cameraMatrix;
-  fs.release();
-
-  std::cout << "Reprojection Error = " << projection << std::endl;
-  std::cout << "cameraMatrix :\n" << cameraMatrix << std::endl;
-  std::cout << "distCoeffs :\n" << distCoeffs << std::endl;
-
-  cv::Mat rotMatrix, extrinsicMatrix;
-  // 将旋转向量转化为旋转矩阵
-  Rodrigues(rvecs[0], rotMatrix);
-  // 矩阵合并
-  hconcat(rotMatrix, tvecs[0], extrinsicMatrix);
-  // std::cout << "Rotation vector :\n" << rotMatrix << std::endl;
-  std::cout << "extrinsicMatrix :\n" << extrinsicMatrix << std::endl;
-
-  return success;
+  origPixel[0] = (marker[0][0].x + marker[0][2].x) / 2;
+  origPixel[1] = (marker[0][0].y + marker[0][2].y) / 2;
+  pixel_to_point(orig, origPixel, depth);
+  // 横坐标 x (P0 - P1)
+  dx = corn[0][0] - corn[1][0];
+  dy = corn[0][1] - corn[1][1];
+  ds = sqrt(dx*dx + dy*dy);
+  T_obj2cam(0,0) = dx/ds;
+  T_obj2cam(1,0) = dy/ds;
+  // 纵坐标 y
+  dx = corn[1][0] - corn[2][0];
+  dy = corn[1][1] - corn[2][1];
+  ds = sqrt(dx*dx + dy*dy);
+  T_obj2cam(0,1) = dx/ds;
+  T_obj2cam(1,1) = dy/ds;
+  T_obj2cam(0,3) = orig[0];
+  T_obj2cam(1,3) = orig[1];
+  T_obj2cam(2,3) = orig[2];
+  T_obj2cam(2,2) = T_obj2cam(3,3) = 1;
+  
+  markerPose = extrMat*T_obj2cam;
+  // std::cout << T_obj2cam << std::endl;
+  return 1;
 }
 
-// 清理指定文件夹; 若文件夹不存在则创建，否则清空
+/* **************** 清理指定文件夹(创建/清空) **************** */
 void Camera::check_up_folder () {
   /* Checking whether path exists */
   std::string dir = calibrationDir;

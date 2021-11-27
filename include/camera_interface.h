@@ -10,6 +10,7 @@ public:
     std::array<double,3> twist;
     cv::Mat img;
     bool flag = false;
+    Eigen::Matrix<double,4,4> markerPose;
   };
   Data get_data(void);
   void update(Data* Data_);

@@ -31,6 +31,7 @@
 
 typedef Eigen::Matrix3d Mat3d;
 typedef Eigen::Vector3d Vec3d;
+typedef Eigen::Matrix<double,4,4> Mat4d;
 typedef Eigen::Matrix<double,6,1> Vec6d;
 typedef Eigen::Matrix<double,6,6> Mat6d;
 
@@ -58,7 +59,7 @@ THETA plane_invese_kinematics(std::array<double,3>& state);
  * @param: 旋转矩阵(ori_hnd);
  * @return: 末端位姿向量(6x1)
 *************************************************************************/
-Vec6d ur_kinematics(Mat3d& oriMat);
+int ur_kinematics(Mat4d& tranMat);
 
 /*************************************************************************
  * @brief: 计算从关节空间到笛卡尔空间的雅克比矩阵，及其逆矩阵、转置矩阵
@@ -70,7 +71,7 @@ Mat6d ur_jacobian(void);
 Mat3d RPY2RotMat(double alpha, double beta, double gamma);
 Vec3d RotMat2AxisAngle(Mat3d rotMat);
 Vec3d RotMat2EulerAngle(Mat3d rotMat);
-THETA ur_InverseKinematics(Vec3d hand_p, Mat3d rotMat, THETA curTheta);
+THETA ur_InverseKinematics(Mat4d tranMat, THETA curTheta);
 
 
 /*************************************************************************

@@ -17,8 +17,8 @@ void camera_thread_function(void) {
   cv::Mat sampleFrame;
   // 设置相机外参
   Eigen::Matrix<double,4,4> T_cam2elk;
-  T_cam2elk << -1,  0, 0, 36,
-    0, -1, 0, 82,
+  T_cam2elk << -1,  0, 0, 34,
+    0, -1, 0, 80,
     0,  0, 1, 26,
     0,  0, 0, 1;
   // T_cam2elk << -0.9987748,  0.0360119, 0.0339432, 31,
@@ -33,7 +33,6 @@ void camera_thread_function(void) {
     sampleFrame = camera.get_color_frame();
     if (camera.detect_marker(sampleFrame, 14, 178, objStateData.markerPose)){
       objStateData.flag = true;
-      // std::cout << objStateData.markerPose << std::endl;
       objState.update(&objStateData);
       break;
     }

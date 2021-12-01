@@ -10,9 +10,11 @@
 #include <mutex>
 #include <condition_variable>
 #include "system_time.h"
+// 调用其他线程的函数
 #include "sensor_interface.h"
 #include "camera_interface.h"
 #include "ur5e_interface.h"
+#include "gripper_interface.h"
 
 
 /* **************** 线程管理 **************** */
@@ -20,26 +22,24 @@
 // 线程状态
 #define THREAD_INIT 0
 #define THREAD_EXIT 255
+#define THREAD_INIT_GRASP 1
 // 节点状态
 #define OFF 0
 #define ON 1
 #define IDLE 2
 struct ThreadManager {
   ThreadManager() {
-    memset(&device, 0, sizeof(Device));
-    process = THREAD_INIT;
-    // device.camera = false;
-    // device.sensor = false;
-    // device.robot  = false;
+    memset(this, 0, sizeof(ThreadManager));
   }
   struct Device {
-    bool camera, sensor, robot;
+    unsigned char camera, sensor, robot;
   }device;
-  int process;
+  unsigned char process;
 };
 
 void master_thread_function(void);
-void servo_function(UrDriver* ur);
+void init_grasp(void);
+void pick_and_place(Mat4d tranMat);
 
 #endif
 

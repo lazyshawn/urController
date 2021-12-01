@@ -5,14 +5,10 @@
 #include "../include/common.h"
 #include "../include/data_exchange.h"
 #include "../include/system_time.h"
-#include "../include/ur_driver.h"
 #include "../include/thread_pool.h"
-#include "../include/robotiq_driver.h"
 #include "../include/print_status.h"
 #include "../include/user_interface.h"
-#include "../include/ur5e_interface.h"
 
-// Defined from dataExchange.cpp
 extern urConfig urconfig;
 extern PathQueue pathQueue;
 // 线程管理标识

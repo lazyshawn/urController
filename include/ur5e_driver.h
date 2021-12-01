@@ -72,6 +72,7 @@ Mat3d RPY2RotMat(double alpha, double beta, double gamma);
 Vec3d RotMat2AxisAngle(Mat3d rotMat);
 Vec3d RotMat2EulerAngle(Mat3d rotMat);
 THETA ur_InverseKinematics(Mat4d tranMat, THETA curTheta);
+bool swap_joint(double& joint);
 
 
 /*************************************************************************

@@ -160,6 +160,9 @@ $$
 
 
 ## ✨ Inverse kinematics
+> 注意关节角的范围为 $q_i \in (-\pi,\pi]$，因此需要将计算的角度转换到定义域后
+再比较关节角的变化量。
+
 已知 $^0_6T$ 求 $\theta_i$[^invKinematics]。记:
 $$
 ^0_6T = \left[ {\begin{array}{cccc}

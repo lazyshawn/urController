@@ -122,6 +122,9 @@ void display_menu(void) {
 *************************************************************************/
 void display_current_information(urConfig::Data urConfigData) {
   TWIST twist;
+  for (int i=0; i<3; ++i) {
+    twist[i] = urConfigData.tranMat(i,3);
+  }
   printf("\n--------------------- Current Information -----------------------\n");
   printf("==>> path frequency = %f [Hz]\n", urConfigData.path.freq);
   switch (urConfigData.path.interpMode) {
@@ -171,7 +174,7 @@ void teleoperate_robot(void) {
   bool process = true;
 
   std::cout << 
-    "*******************************************************\n" <<
+    "\n*******************************************************\n" <<
     "=== Remote control of the robot \n" <<
     "*******************************************************" << std::endl;
   while (process) {

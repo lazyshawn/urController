@@ -56,8 +56,8 @@ int main() {
 
   while(true) {
     frame = camera.get_color_frame();
-    // if (camera.detect_marker(frame, 14, 176, markerPose)) {
-    if (camera.detect_marker(frame, 14, 300, markerPose)) {
+    if (camera.detect_marker(frame, 14, 176, markerPose)) {
+    // if (camera.detect_marker(frame, 14, 300, markerPose)) {
       std::cout << markerPose << std::endl;
     };
 

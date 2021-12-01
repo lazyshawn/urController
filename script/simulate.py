@@ -233,7 +233,7 @@ ax1.plot(time, q_jnt[3,:]*r2d, 'y--', label=r'$\theta_4$')
 ax1.plot(time, q_jnt[4,:]*r2d, 'm:',  label=r'$\theta_5$')
 ax1.plot(time, q_jnt[5,:]*r2d, 'b',   label=r'$\theta_6$')
 
-# legend: 
+# legend:
 # loc = upper/lower/center, right/left/center, best(default)
 ax1.legend(loc='best')
 ax1.grid(True)

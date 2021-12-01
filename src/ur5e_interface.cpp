@@ -36,6 +36,7 @@ void PathQueue::wait_and_pop(PATH& path) {
   std::unique_lock lock(path_mutex);
   path_cond.wait(lock, [this]{return !data.empty();});
   path = std::move(data.front());
+  path.status = PATH_GOING;
   data.pop_front();
 }
 
@@ -44,25 +45,30 @@ bool PathQueue::try_pop(PATH& path) {
   std::scoped_lock lock(path_mutex);
   if (data.empty()) return false;
   path = std::move(data.front());
+  path.status = PATH_GOING;
   data.pop_front();
   return true;
 }
 
 // 尝试弹出路径并初始化
 bool PathQueue::try_pop(PATH& path, double time, ARRAY orig) {
-  std::scoped_lock lock(path_mutex);
-  if (data.empty()) return false;
-  path = std::move(data.front());
-  path.beginTime = time;
-  path.orig = orig;
-  data.pop_front();
-  return true;
+  bool flag = try_pop(path);
+  if (flag) {
+    path.beginTime = time;
+    path.orig = orig;
+  }
+  return flag;
 }
 
 // 判断路径队列是否为空
 bool PathQueue::empty() const {
   std::scoped_lock lock(path_mutex);
   return data.empty();
+}
+
+// 计算队列长度
+int PathQueue::size() {
+  return data.size();
 }
 
 // 进入等待(for debug)
@@ -107,8 +113,8 @@ void robot_thread_function(void) {
   jnt_angle = urRobot.rt_interface_->robot_state_->getQActual();
 #else
   UrDriver* urRobot;
-  jnt_angle = {0, -90, 90, -90, -90, 0};
-  // jnt_angle = {0, -98.9, 117.8, -108.9, -90, 90};
+  // jnt_angle = {0, -90, 90, -90, -90, 0};
+  jnt_angle = {0, -98.9, 117.8, -108.9, -90, 90};
   for (int i=0; i<6; ++i) {
     jnt_angle[i] *= Deg2Rad;
   }
@@ -205,9 +211,10 @@ void servo_function(UrDriver* ur) {
   // Current position of the end_link
 
   /* Pop path info */
-  if (urConfigData.path.complete) {
+  if (urConfigData.path.status != PATH_GOING) {
     // 当前路径运行完成，且队列中没有新的路径
     if (pathQueue.empty()) {
+      if (urConfigData.path.status == PATH_DONE) urConfigData.path.status = PATH_CLEAR;
       urconfig.update(&urConfigData);
       return;
     }
@@ -249,13 +256,15 @@ void calc_ref_joint(urConfig::Data& urConfigData) {
   if (urConfigData.path.angleServo) {
     ARRAY orig = urConfigData.path.orig;
     ARRAY goal = urConfigData.path.goal;
-    int interpMode = urConfigData.path.interpMode;
-    urConfigData.path.complete = joint_interpolation(
+    unsigned char interpMode = urConfigData.path.interpMode;
+    // 未完成返回0，完成返回1
+    urConfigData.path.status = joint_interpolation(
         offsetTime, freq, interpMode, orig, goal, urConfigData.refTheta);
   } else {
   // 速度伺服
-    urConfigData.path.complete = velocity_interpolation(
-        offsetTime, freq, urConfigData.curTheta, urConfigData.refTheta, urConfigData.path.velocity);
+    urConfigData.path.status = velocity_interpolation(
+        offsetTime, freq, urConfigData.curTheta, urConfigData.refTheta, 
+        urConfigData.path.velocity);
   } // if {} else {}
 
   // 角度限位
@@ -325,20 +334,22 @@ void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta) {
   pathQueue.push(path);
 }
 
-void go_to_pose(Mat4d tranMat, THETA curTheta) {
+void go_to_pose(Mat4d tranMat, THETA curTheta, double time) {
   PATH path;
+  Mat4d kinematics;
   // 角度伺服标志置位
   path.angleServo = ON;
   path.interpMode = 2;
-  path.freq = 1.0/5;
+  path.freq = 1.0/time;
   path.goal = ur_InverseKinematics(tranMat, curTheta);
   pathQueue.push(path);
 }
 
 void robot_go_home(THETA curTheta){
   PATH path;
-  NUMBUF inputData = {400, DH_D4, 300, 0, 0, 0, 5, 0, 10};
-  add_cartesion_destination(path, inputData, curTheta);
+  Mat4d homePose;
+  homePose << 1, 0, 0, 400,  0, -1, 0, DH_D4, 0, 0, -1, 300,  0, 0, 0, 1;
+  go_to_pose(homePose, curTheta, 5);
 }
 
 void pivot_about_points(TRIARR& state, TRIARR command, double time) {
@@ -370,5 +381,16 @@ void instant_command(THETA refTheta) {
     pathLocal.goal[i] = refTheta[i];
   }
   pathQueue.push(pathLocal);
+}
+
+bool wait_for_path_clear(void) {
+  urConfig::Data urConfigData;
+  for (int i=0; ; ++i) {
+    if (threadManager.process == THREAD_EXIT) return false;
+    if (pathQueue.empty()) {
+      urConfigData = urconfig.get_data();
+      if(urConfigData.path.status == PATH_CLEAR) return true;
+    }
+  }
 }
 

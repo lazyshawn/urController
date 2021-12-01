@@ -265,6 +265,7 @@ THETA ur_InverseKinematics(Mat4d tranMat, THETA curTheta) {
   double A1 = py - ay*DH_D6, B1 = -px + ax*DH_D6;
   temp1 = atan2(DH_D4, sqrt(A1*A1+B1*B1-DH_D4*DH_D4)) - atan2(A1,B1);
   temp2 = atan2(DH_D4,-sqrt(A1*A1+B1*B1-DH_D4*DH_D4)) - atan2(A1,B1);
+  swap_joint(temp1); swap_joint(temp2);
   qJoint[0] = fabs(temp1-curTheta[0])<fabs(temp2-curTheta[0]) ? temp1 : temp2;
   s1 = sin(qJoint[0]); c1 = cos(qJoint[0]);
   // 关节角5 (t15_22)
@@ -294,12 +295,22 @@ THETA ur_InverseKinematics(Mat4d tranMat, THETA curTheta) {
   double B4 = -c6*(ox*c1+oy*s1) -s6*(nx*c1+ny*s1);
   qJoint[3] = atan2(B4, A4) - qJoint[1] - qJoint[2];
   // Wrap qJoint[3] to (-pi,pi]
-  if (qJoint[3] > M_PI) {
-    qJoint[3] -= 2*M_PI;
-  } else if (qJoint[3] < -M_PI) {
-    qJoint[3] += 2*M_PI;
-  }
+  swap_joint(qJoint[3]);
   return qJoint;
+}
+
+// Wrap joint angle to (-pi,pi]
+bool swap_joint(double& joint) {
+  while(true) {
+    if (joint > M_PI) {
+      joint -= 2*M_PI;
+    } else if (joint <= -M_PI) {
+      joint += 2*M_PI;
+    } else {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 

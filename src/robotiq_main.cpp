@@ -10,7 +10,7 @@
 // step 7. Open the gripper
 // {0x09, 0x10, 0x03, 0xE8, 0x00, 0x03, 0x06, 0x09, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x72, 0x19}
 
-#include "../include/robotiq_driver.h"
+#include "../include/gripper_driver.h"
 #include <array>
 #include <iostream>
 
@@ -24,19 +24,19 @@ int main(int argc, char** argv) {
   int width;
 
   char command;
+  std::cout << "o(open) / y(close) / p(print)"<< std::endl;
   while(true) {
     command = scanKeyboard();
-    std::cout << std::endl;
     switch(command) {
     // 打开夹爪
     case 'o': robQ.open_to_cmd(10); break;
     // 闭合夹爪
-    case 'y': robQ.open_to_cmd(60); break;
+    case 'y': robQ.open_to_cmd(80); break;
     // 打印菜单
     case 'm': print_menu(); break;
     case 'p': 
       width = robQ.get_position();
-      printf("width = %d", width);
+      printf("width = %d\n", width);
       break;
     case 27: printf("end\n"); return 0; break;
     default: std::cout << "Unknow input" << std::endl; break;

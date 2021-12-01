@@ -12,8 +12,8 @@ Notation:
 <!-- The format is based on Keep a [Changelog](https://keepachangelog.com/en/1.0.0/). -->
 
 ## ✨ Logs
-### 
-> commit [](
+### 211127
+> commit [31bb2d2 --- feat: aruco marker](
 )
 1. `feat`: 删除标定内参的程序，新增外参设定、 Marker 位姿的识别 (-laruco)。
 1. `perf`: **机械臂状态类** 中改用齐次变换矩阵。

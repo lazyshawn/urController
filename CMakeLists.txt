@@ -13,8 +13,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 # Generate the library from the library sources
 function(build_driver)
-  add_library(robotiq SHARED
-    src/robotiq_driver.cpp
+  add_library(gripper SHARED
+    src/gripper_driver.cpp
   )
   add_library(camera SHARED
     src/camera_driver.cpp
@@ -58,9 +58,9 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 # Add an executable with the above sources
 # RobotiQ
-add_executable(robotiq_bin
+add_executable(gripper_bin
   src/robotiq_main.cpp
-  src/robotiq_driver.cpp
+  src/gripper_driver.cpp
 )
 # Realsense
 add_executable(camera_bin
@@ -95,6 +95,7 @@ add_executable(ur_bin
   src/camera_interface.cpp
   src/ur5e_driver.cpp
   src/ur5e_interface.cpp
+  src/gripper_interface.cpp
 )
 
 # Link the demo_lib target with the demo_bin target
@@ -106,5 +107,5 @@ add_executable(ur_bin
 target_link_libraries(ur_bin -pthread)
 target_link_libraries(ur_bin ${OpenCV_LIBS} -lopencv_aruco)
 target_link_libraries(ur_bin -lrealsense2)
-target_link_libraries(ur_bin urdriver robotiq camera forceSensor Ginkgo_Driver)
+target_link_libraries(ur_bin urdriver gripper camera forceSensor Ginkgo_Driver)
 

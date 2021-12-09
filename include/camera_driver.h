@@ -20,6 +20,7 @@ private:
   rs2::pipeline pipe;       // 声明Realsense管道
   rs2::frameset frames;     // 创建一个rs2::frameset对象, 包含一组帧和访问它们的接口
   rs2::colorizer color_map; // 声明彩色图
+  // 当初始化多个相机时，以下两个参数需要在源文件中作为全局变量声明
   rs2::config cfg;          // 数据流信息配置文件
   rs2::pipeline_profile selection;
   rs2::frame color_frame, depth_frame;
@@ -28,6 +29,7 @@ private:
 
 public:
   Camera();
+  Camera(std::string serialNum);
   ~Camera();
 
   /* 标定相关的变量与函数 */

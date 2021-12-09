@@ -42,6 +42,21 @@ void interface_thread_function(void) {
       teleoperate_robot();
       threadManager.device.robot = IDLE;  // 机械臂线程挂起
       break;
+    case 's': case 'S':
+      threadManager.process = THREAD_SETUP;
+      // 机械臂
+      if(threadManager.device.robot == OFF) { // 避免重复启动
+        robot_thread = std::thread(robot_thread_function);
+        threadManager.device.robot = IDLE;  // 机械臂线程挂起
+      }
+      // 相机和夹爪
+      camera_thread = std::thread(camera_thread_function);
+      threadManager.device.camera = true;
+      sleep(2);  // 等待各线程初始化完毕
+      std::cout <<  "*******************************************************\n" 
+        << std::endl;
+      threadManager.process = THREAD_INIT_GRASP;
+      break;
     // 回车和换行
     case 10: case 13: break;
     // Exit (e/E/ESC)

@@ -3,19 +3,19 @@
 /*************************************************************************
  * 录制视频
 *************************************************************************/
-// int main() {
-//   Camera camera;
-//   cv::VideoWriter outputVideo = camera.create_recorder();
-//
-//   while (cv::waitKey(10) < 0) {
-//     cv::Mat color = camera.get_color_frame();
-//     imshow("Display color Image", color);
-//     //保存当前帧
-//     outputVideo << color;
-//     imwrite("../build/calibrate.jpg",color);
-//   }
-//   return 0;
-// }
+int main() {
+  Camera camera;
+  cv::VideoWriter outputVideo = camera.create_recorder();
+
+  while (cv::waitKey(10) < 0) {
+    cv::Mat color = camera.get_color_frame();
+    imshow("Display color Image", color);
+    //保存当前帧
+    outputVideo << color;
+    // imwrite("../build/calibrate.mp4",color);
+  }
+  return 0;
+}
 
 /*************************************************************************
  * 内参标定
@@ -42,29 +42,29 @@
  * @ref: http://m.mamicode.com/info-detail-2148085.html
  *       https://blog.csdn.net/qq_33446100/article/details/89115983
 *************************************************************************/
-int main() {
-  Camera camera;
-  cv::Mat frame, frame_show;
-  Eigen::Matrix<double,4,4> markerPose;
-  // 设置相机外参
-  Eigen::Matrix<double,4,4> T_cam2elk;
-  T_cam2elk << -0.9987748,  0.0360119, 0.0339432, 31,
-    -0.0359439, -0.9993594, 0.0026104, 82,
-    0.0340151,  0.0013871, 0.9994293, 26,
-    0, 0, 0, 1;
-  camera.set_extrMat(T_cam2elk);
-
-  while(true) {
-    frame = camera.get_color_frame();
-    if (camera.detect_marker(frame, 14, 176, markerPose)) {
-    // if (camera.detect_marker(frame, 14, 300, markerPose)) {
-      std::cout << markerPose << std::endl;
-    };
-
-    char key = (char)cv::waitKey(30);
-    if (key == 27) break;
-  }
-
-  return 0;
-}
+// int main() {
+//   Camera camera;
+//   cv::Mat frame, frame_show;
+//   Eigen::Matrix<double,4,4> markerPose;
+//   // 设置相机外参
+//   Eigen::Matrix<double,4,4> T_cam2elk;
+//   T_cam2elk << -0.9987748,  0.0360119, 0.0339432, 31,
+//     -0.0359439, -0.9993594, 0.0026104, 82,
+//     0.0340151,  0.0013871, 0.9994293, 26,
+//     0, 0, 0, 1;
+//   camera.set_extrMat(T_cam2elk);
+//
+//   while(true) {
+//     frame = camera.get_color_frame();
+//     if (camera.detect_marker(frame, 14, 176, markerPose)) {
+//     // if (camera.detect_marker(frame, 14, 300, markerPose)) {
+//       std::cout << markerPose << std::endl;
+//     };
+//
+//     char key = (char)cv::waitKey(30);
+//     if (key == 27) break;
+//   }
+//
+//   return 0;
+// }
 

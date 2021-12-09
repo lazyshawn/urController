@@ -28,6 +28,60 @@ s\theta_is\alpha_{i-1} & c\theta_is\alpha_{i-1} & c\alpha_{i-1} & c\alpha_{i-1}d
 \end{array}} \right]
 $$
 
+### 指数积公式的物体坐标表示形式
+初始状态下，工具坐标系相对于基坐标系的齐次转换矩阵如下，
+其中$\Delta x_i$ 为工具相对于末端坐标系(end\_link)的位置补偿。
+$$
+M = \left[ {\begin{array}{ccc}
+1 & 0 & 0 & 817.25+\Delta x \\
+0 & 0 & 1 & 191.45+\Delta z \\
+0 & -1 & 0 & -5.191-\Delta y \\
+0 & 0 & 0 & 1
+\end{array}} \right]
+$$
+
+$$
+\left[\begin{matrix}-0.125560390530269 & 0.00251653976245647 & 0.000861604140727933\\0.358364762827489 & -0.00207065880651836 & 0.00198573209773934\\-1.23280437229722 & -0.000445880955938113 & -0.00284733623846727\end{matrix}\right]
+$$
+
+$$
+\left[\begin{matrix}0.125560390530269\\-0.358364762827489\\1.23280437229722\end{matrix}\right]
+$$
+
+每个关节螺旋轴相对于工具坐标系的旋量坐标为如下：
+| $i$ | $\omega_i$   | $v_i$                                          |
+|-----|--------------|------------------------------------------------|
+| 1   | $[0,-1,0]^T$ | $[-(d_4+d_6+\Delta z), 0, a_2+a_3+\Delta x]^T$ |
+|     |              | $[-191.45, 0, 817.25]$                          |
+| 2   | $[0,0,1]^T$  | $[-(d_5+\Delta y), a_2+a_3+\Delta x, 0]^T$     |
+|     |              | $[-94.65, 0, 817.25]$                          |
+| 3   | $[0,0,1]^T$  | $[-(d_5+\Delta y), a_3+\Delta x, 0]^T$         |
+|     |              | $[-94.65, 392.25, 0]$                          |
+| 4   | $[0,0,1]^T$  | $[-(d_5+\Delta y), 0, 0]^T$                    |
+|     |              | $[-94.65, 0, 0]$                               |
+| 5   | $[0,1,0]^T$  | $[d_6+\Delta z, 0, 0]^T$                       |
+|     |              | $[82.3, 0,0]$                                  |
+| 6   | $[0,0,1]^T$  | $[\Delta x, \Delta y, \Delta z]^T$             |
+
+正运动学方程为：
+$$
+\begin{array}{cl}
+T(\theta) &=  Me^{[S_1]\theta_1}e^{[S_2]\theta_2}\cdots e^{[S_6]\theta_6}\\
+ &=e^{[B_1]\theta_1}e^{[B_2]\theta_2}\cdots e^{[B_6]\theta_6}M
+\end{array}
+$$
+式中
+$$
+e^{[S]\theta} = \left[ {\begin{array}{cc}
+e^{[\omega]\theta} & (I\theta +(1-cos\theta)[\omega]+(\theta-sin\theta)[\omega]^2)v \\
+0 & 1 \\
+\end{array}} \right]
+$$
+$$
+B_i = [Ad_{M^{-1}}]S_i
+$$
+
+
 ## ✨ Jacobian of UR5
 ### 位置分量
 固连在关节 6 上的坐标系的原点位置表达式如下:
@@ -559,6 +613,101 @@ function ur_calcJnt(q)
   c234 = cos(q(2)+q(3)+q(4)); s234 = sin(q(2)+q(3)+q(4));
 end
 ```
+## ✨ Appendix C. twist_3d.py
+```python
+####################################################################
+# 导入库
+####################################################################
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from scipy.interpolate import splprep, splev
+import math
+import sympy as sym
+from sympy import sin,cos
+
+
+####################################################################
+# 设置字体
+####################################################################
+# 正常显示中文标签
+plt.rcParams['font.sans-serif'] = ['SimHei']
+# 正常显示负号
+plt.rcParams['axes.unicode_minus'] = False
+
+
+####################################################################
+# 自定义函数
+####################################################################
+I = sym.Matrix([[1,0,0], [0,1,0], [0,0,1]])
+deg2rad = math.pi/180
+rad2deg = 180/math.pi
+# 机械臂构型描述
+w1 = sym.Matrix([0,-1,0]);  v1 = sym.Matrix([-191.45,0,817.25])
+w2 = sym.Matrix([0,0,1] );  v2 = sym.Matrix([-94.65,817.25,0] )
+w3 = sym.Matrix([0,0,1] );  v3 = sym.Matrix([-94.65,392.25,0] )
+w4 = sym.Matrix([0,0,1] );  v4 = sym.Matrix([-94.65,0,0]      )
+w5 = sym.Matrix([0,1,0] );  v5 = sym.Matrix([82.3,0,0]        )
+w6 = sym.Matrix([0,0,1] );  v6 = sym.Matrix([0,0,0]           )
+M = sym.Matrix([[1,0,0,817.25], [0,0,1,191.45], [0,-1,0,-5.191], [0,0,0,1]])
+### 旋量转换为齐次变换矩阵
+def twist2tran(w, vel, q):
+    #  global I
+    lw = li(w)
+    v = sym.Matrix([[vel[0]],[vel[1]],[vel[2]]])
+    rot = I + sin(q)*lw + (1-cos(q))*lw*lw
+    pos = (I*q + (1-cos(q))*lw + (q-sin(q))*lw*lw) * v
+    tran = sym.Matrix([[rot, pos],[0,0,0,1]])
+    tran = sym.simplify(tran)
+    return tran
+
+# 角速度转换为李代数
+def li(w):
+    lw = sym.Matrix([[0,-w[2],w[1]], [w[2],0,-w[0]], [-w[1],w[0],0]])
+    return lw
+
+# 齐次转换矩阵对应的邻接转换矩阵
+def adj(tran):
+    R = tran[0:3,0:3]
+    p = tran[0:3,3]
+    pR = li(p)*R
+    O33 = sym.Matrix([[0,0,0], [0,0,0], [0,0,0]])
+    adjMat = sym.Matrix([[R,O33], [pR,R]])
+    adjMat = sym.simplify(adjMat)
+    return adjMat
+
+# 正运动学
+def kinematic(q):
+    tran1 = twist2tran(w1, v1, q[0])
+    tran2 = twist2tran(w2, v2, q[1])
+    tran3 = twist2tran(w3, v3, q[2])
+    tran4 = twist2tran(w4, v4, q[3])
+    tran5 = twist2tran(w5, v5, q[4])
+    tran6 = twist2tran(w6, v6, q[5])
+    T = M*tran1*tran2*tran3*tran4*tran5*tran6
+    sym.print_latex(T)
+
+if __name__ == '__main__':
+    w = sym.symbols('w_1:4')
+    v = sym.symbols('v_1:4')
+    q = sym.symbols('q_1:7')
+    #  q = np.array([0, -98.9, 117.80, -108.9, -90, 90])*deg2rad
+    #  kinematic(q)
+    #  T = sym.simplify(T)
+    jb6 = sym.Matrix([w6,v6])
+    tran = twist2tran(w6,v6,-q[5])
+    jb5 = adj(tran)*sym.Matrix([w5,v5])
+    tran *= twist2tran(w5,v5,-q[4])
+    jb4 = adj(tran)*sym.Matrix([w4,v4])
+    tran *= twist2tran(w4,v4,-q[3])
+    jb3 = adj(tran)*sym.Matrix([w3,v3])
+    tran *= twist2tran(w3,v3,-q[2])
+    jb2 = adj(tran)*sym.Matrix([w2,v2])
+    tran *= twist2tran(w2,v2,-q[1])
+    jb1 = adj(tran)*sym.Matrix([w1,v1])
+    sym.print_latex(sym.simplify(jb1))
+```
+
 
 
 [^quaternion]: Tomas K.M, Eric H, Naty H. Real Time Rendering 4th Edition, p80-p81, 2008.

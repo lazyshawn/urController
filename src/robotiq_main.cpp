@@ -29,9 +29,9 @@ int main(int argc, char** argv) {
     command = scanKeyboard();
     switch(command) {
     // 打开夹爪
-    case 'o': robQ.open_to_cmd(10); break;
+    case 'o': robQ.go(10); break;
     // 闭合夹爪
-    case 'y': robQ.open_to_cmd(80); break;
+    case 'y': robQ.go(80); break;
     // 打印菜单
     case 'm': print_menu(); break;
     case 'p': 

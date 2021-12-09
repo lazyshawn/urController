@@ -5,8 +5,20 @@
 *************************************************************************/
 /* **************** 构造函数 **************** */
 Camera::Camera(){
-  // Create a configuration for configuring the pipeline
-  rs2::config cfg;
+  // Create librealsense context for managing devices
+  rs2::context ctx;
+  auto &&dev = ctx.query_devices();
+  std::string serialNum =  dev[0].get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
+  std::cout << "\nSerial num is not specifiled. Use the first one" << std::endl;
+  for (int i=0; i<dev.size(); ++i) {
+      std::cout << dev[i].get_info(RS2_CAMERA_INFO_SERIAL_NUMBER) << std::endl;
+  }
+  new(this) Camera(serialNum);
+}
+
+// 按序列号激活相机
+Camera::Camera(std::string serialNum){
+  cfg.enable_device(serialNum);
   cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
   cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
 
@@ -17,6 +29,7 @@ Camera::Camera(){
   auto stream = selection.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
   intr = stream.get_intrinsics(); // Calibration data
 
+  // 初始化默认外参
   extrMat << 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
   set_extrMat(extrMat);
 }
@@ -79,6 +92,7 @@ void Camera::pixel_to_point(float* point3d, float* pixel, float depth) {
 }
 
 /* **************** 检测 Marker 位姿 **************** */
+// Ref: https://blog.csdn.net/qq_33446100/article/details/89115983
 int Camera::detect_marker(cv::Mat frame, int id, float depth, Eigen::Matrix<double,4,4>& markerPose) {
   cv::Mat frame_show;
   Eigen::Matrix<double,4,4> T_obj2cam = Eigen::Matrix<double,4,4>::Zero();

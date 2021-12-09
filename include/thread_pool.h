@@ -22,7 +22,8 @@
 // 线程状态
 #define THREAD_INIT 0
 #define THREAD_EXIT 255
-#define THREAD_INIT_GRASP 1
+#define THREAD_SETUP 1
+#define THREAD_INIT_GRASP 2
 // 节点状态
 #define OFF 0
 #define ON 1

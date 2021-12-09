@@ -36,18 +36,21 @@ int main(int argc, char** argv) {
   CRGGripper crgGripper(targetIP, portIndex);
   float pos;
 
+  std::cout << "CRGGripper Connected!" << std::endl;
+  std::cout << "y(close)/o(open)/h(home)/p(print)" << std::endl;
   char command;
   bool flag = true;
   while (flag) {
     command = scanKeyboard();
     switch (command) {
-    case 'c':
-      std::cout << "set position" << std::endl;
-      std::cin >> pos;
+    case 'y':
+      pos = int(crgGripper.read_pos() - 1.0);
       crgGripper.go(pos);
       break;
     case 'h':
       crgGripper.home();
+    case 'p':
+      crgGripper.read_pos();
     case 10: case 13: break;
     // Exit (e/E/ESC)
     case 27:
@@ -57,7 +60,6 @@ int main(int argc, char** argv) {
     default: std::cout << "==>> Unknow command." << std::endl; break;
     }
   } // while (threadManager.process != THREAD_EXIT)
-
   return 0;
 }
 

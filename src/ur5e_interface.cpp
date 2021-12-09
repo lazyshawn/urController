@@ -107,7 +107,7 @@ void robot_thread_function(void) {
   std::cout << "Connecting to " << ur_ip << std::endl;
   UrDriver urRobot(rt_ur_msg_cond, ur_msg_cond, ur_ip, ur_post);
   urRobot.start();
-  usleep(100); // 机械臂初始化，确保能TCP通信连上(accept)
+  usleep(400); // 机械臂初始化，确保能TCP通信连上(accept)
   urRobot.setServojTime(0.008);
   urRobot.uploadProg();
   jnt_angle = urRobot.rt_interface_->robot_state_->getQActual();
@@ -123,9 +123,11 @@ void robot_thread_function(void) {
     urConfigData.path.goal[i] = urConfigData.path.orig[i] = urConfigData.refTheta[i]
       = urConfigData.curTheta[i] = jnt_angle[i];
   }
+  calcJnt(urConfigData.curTheta);
+  ur_kinematics(urConfigData.tranMat);
   // 同步全局变量
-  std::cout << "\n==>> Robot is ready.\n" << std::endl;
   urconfig.update(&urConfigData);
+  std::cout << "\n==>> Robot is ready.\n" << std::endl;
 
   /* Declare ourself as a real time task */
   // Data structure to describe a process' schedulability
@@ -250,7 +252,7 @@ void calc_ref_joint(urConfig::Data& urConfigData) {
   // 当前路径执行的时间
   double offsetTime = urConfigData.time - urConfigData.path.beginTime;
   double freq = urConfigData.path.freq;
-  double delQ = 8*Deg2Rad;
+  double increment, delQ = 1.5*Deg2Rad;
 
   // 角度伺服
   if (urConfigData.path.angleServo) {
@@ -269,10 +271,11 @@ void calc_ref_joint(urConfig::Data& urConfigData) {
 
   // 角度限位
   for (int i=0; i<6; ++i) {
-    if (urConfigData.refTheta[i] - urConfigData.curTheta[i] > delQ) {
-      urConfigData.refTheta[i] = urConfigData.curTheta[i] + delQ;
-    } else if (urConfigData.refTheta[i] - urConfigData.curTheta[i] < -delQ) {
-      urConfigData.refTheta[i] = urConfigData.curTheta[i] - delQ;
+    increment = urConfigData.refTheta[i] - urConfigData.curTheta[i];
+    if (fabs(increment) > delQ) {
+      std::cout << "Joint [" << i << "] is overloaded: " << increment << " / " 
+        << delQ << std::endl;
+      threadManager.process = THREAD_EXIT;
     }
   }
 } // calc_ref_joint()

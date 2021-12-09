@@ -12,25 +12,30 @@
 #include <iostream>
 #include <arpa/inet.h>
 
+/*************************************************************************
+ * @class: CRGGripper
+*************************************************************************/
 class CRGGripper {
 private:
-  int clientFd, msgFd, force;
+  int clientFd, msgFd;
   sockaddr_in targetAddr;
   float cfg[3], pos;
-  int grip, release;
   std::string targetIP;
   unsigned int portIndex;
-  char msgRecv[64], cmd[64];
+  char msgRecv[1024], cmd[32];
+  int grip, release;
 
 public:
   CRGGripper(std::string targetIP, unsigned int port);
   ~CRGGripper();
-  void send_cmd(std::string str);
-  void read_recv();
+  void send_cmd(std::string);
   void home();
+  void go(float destination);
   float read_pos();
-  void go(int destination);
+  void disable();
+  void read_recv();
 };
+
 
 /*************************************************************************
  * @class: RobotiQ
@@ -77,7 +82,7 @@ public:
   int read_port(uint8_t* rx, int rxLen);
   // 用数组给传输数据赋值
   void set_tx(uint8_t* data, int len);
-  void open_to_cmd(double width);
+  void go(double width);
   uint8_t get_position(void);
   void write_registers(int regIndex, uint8_t valueToWrite[], int numOfVal);
   void read_registers(int regIndex, int numOfVal);

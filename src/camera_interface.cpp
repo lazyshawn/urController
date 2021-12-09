@@ -12,12 +12,13 @@ extern ThreadManager threadManager;
 *************************************************************************/
 void camera_thread_function(void) {
   // 声明一个相机类
-  Camera camera;
+  // Camera cameraOnSide("826212070613");
+  Camera cameraOnHand("819612071057");
   ObjState::Data objStateData;
   cv::Mat sampleFrame;
   // 设置相机外参
   Eigen::Matrix<double,4,4> T_cam2elk;
-  T_cam2elk << -1,  0, 0, 34,
+  T_cam2elk << -1,  0, 0, 31,
     0, -1, 0, 80,
     0,  0, 1, 26,
     0,  0, 0, 1;
@@ -25,16 +26,27 @@ void camera_thread_function(void) {
   //   -0.0359439, -0.9993594, 0.0026104, 82,
   //   0.0340151,  0.0013871, 0.9994293, 26,
   //   0, 0, 0, 1;
-  camera.set_extrMat(T_cam2elk);
+  cameraOnHand.set_extrMat(T_cam2elk);
+
+  std::cout << "\n==>> Camera is ready.\n" << std::endl;
 
   while (threadManager.process != THREAD_EXIT) {
-    objStateData = objState.get_data();
-
-    sampleFrame = camera.get_color_frame();
-    if (camera.detect_marker(sampleFrame, 14, 178, objStateData.markerPose)){
-      objStateData.flag = true;
-      objState.update(&objStateData);
-      break;
+    if (threadManager.process == THREAD_INIT) {
+      sampleFrame = cameraOnHand.get_color_frame();
+      imshow("sampleFrame", sampleFrame);
+      if (cameraOnHand.detect_marker(sampleFrame, 14, 178, objStateData.markerPose)){
+        std::cout << objStateData.markerPose << std::endl;
+      }
+      if (cv::waitKey(10) == 27) break;
+    }
+    if (threadManager.process == THREAD_INIT_GRASP) {
+      objStateData = objState.get_data();
+      sampleFrame = cameraOnHand.get_color_frame();
+      if (cameraOnHand.detect_marker(sampleFrame, 14, 178, objStateData.markerPose)){
+        objStateData.flag = true;
+        objState.update(&objStateData);
+        break;
+      }
     }
   }
 

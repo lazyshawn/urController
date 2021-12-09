@@ -170,8 +170,9 @@ T  = 500  # 运行时间 (ms)
 w  = 40*d2r # 角速度 (rad/s)
 v  = 0      # 线速度 (mm/s)
 nn = int(T/dt+1) # 采样点数
-q0 = np.array([0, -90, 90, -90, -90, 0]).reshape((6,1))*d2r  # 初始关节角
+#  q0 = np.array([0, -90, 90, -90, -90, 0]).reshape((6,1))*d2r  # 初始关节角
 #  q0 = np.array([0, 0, 0, 0, -90, 90]).reshape((6,1))*d2r  # 初始关节角
+q0 = np.array([0, -98.9, 117.80, -108.9, -90, 90])*d2r
 pos = np.zeros((3,nn))
 q_jnt = np.zeros((6,nn))
 dx = np.array([v/(T/dt), 0, 0, w/(T/dt), 0, 0]).reshape((6,1))  # 每个周期的状态变化
@@ -179,19 +180,19 @@ time = np.linspace(0, int(T), int(T/dt+1)) # 时间
 
 ur_kinematics(q0)
 #  pos[:,0] = Tran[0:3,3]
-ur_jacobian(q0)
-print(ijcb)
+#  ur_jacobian(q0)
+#  print(ijcb)
 
 # 循环开始
-#  q = q0
-#  for tt in time:
-#    i = int(tt/dt)
-#    ur_kinematics(q)
-#    pos[:,i] = Tran[0:3,3]
-#    ur_jacobian(q)
-#    dq = ijcb@dx
-#    q = q + dq
-#    q_jnt[:,[i]] = q
+q = q0
+for tt in time:
+  i = int(tt/dt)
+  ur_kinematics(q)
+  pos[:,i] = Tran[0:3,3]
+  ur_jacobian(q)
+  dq = ijcb@dx
+  q = q + dq
+  q_jnt[:,[i]] = q
 
 # 初始状态
 #  q_jnt[:,0] = q0.reshape(1,6)

@@ -4,6 +4,7 @@
  * @class: CRGGripper
 *************************************************************************/
 CRGGripper::CRGGripper(std::string targetIP, unsigned int port){
+  memset(cmd, 0, sizeof(cmd));
   clientFd = socket(AF_INET, SOCK_STREAM, 0);
   /* 设置 sockaddr_in 结构体 */
   bzero(&targetAddr, sizeof(targetAddr));
@@ -14,33 +15,28 @@ CRGGripper::CRGGripper(std::string targetIP, unsigned int port){
   msgFd = connect(clientFd, (struct sockaddr*)&targetAddr, sizeof(targetAddr));
   if(msgFd+1 == 0) {
     std::cout << "Connect CRGGripper failed!" << std::endl;
-    close(clientFd);
     return;
   }
   home();
 }
 
 CRGGripper::~CRGGripper(){
-  close(msgFd);
+  disable();
   close(clientFd);
   std::cout << "Termination" << std::endl;
 }
 
 void CRGGripper::send_cmd(std::string str) {
-  memset(msgRecv, 0, sizeof(msgRecv));
   if(send(clientFd, str.c_str(), strlen(str.c_str()), 0) == -1) {
     std::cout << "Client send failed" << std::endl;
     return;
   }
+  memset(msgRecv, 0, sizeof(msgRecv));
   int recvFlag = recv(clientFd, msgRecv, sizeof(msgRecv), 0);
 }
 
-void CRGGripper::read_recv(){
-  printf("%s\n", msgRecv);
-}
-
 void CRGGripper::home(){
-  sprintf(cmd, "HOME(%d)\n", portIndex);
+  sprintf(cmd, "home(%d)\n", portIndex);
   send_cmd(cmd);
 }
 
@@ -52,26 +48,37 @@ float CRGGripper::read_pos(){
   return pos;
 }
 
-void CRGGripper::go(int destination) {
+void CRGGripper::go(float destination){
   // 限位
   bool getDes = false;
   if(destination >= 85){
     destination = 85;
-  }else if(destination <= 0){
-    destination = 0;
+  }else if(destination <= 32){
+    destination = 32;
   }
   grip = release = destination;
-  force = 100;
-  sprintf(cmd, "GRIPCFG[0][0]=[\"\",%d,%d,%d,0,0,0,0,0]\n",  grip, release, force);
+  sprintf(cmd, "GRIPCFG[0][0]=[\"\",%d,%d,%d,0,0,0,0,0]\n",  grip, release, 100);
   send_cmd(cmd);
   send_cmd("GRIP(0,0)\n");
-  // while(!getDes){
+  unsigned int status = 0;
+  while(status != 4){
     send_cmd("DEVSTATE[0]?\n");
-    read_recv();
-    printf("%s\n", &msgRecv[12]);
-  // }
+    status = std::atof(&msgRecv[12]);
+    usleep(50);
+  }
   send_cmd("RELEASE(0,0)\n");
 }
+
+void CRGGripper::disable(){
+  sprintf(cmd, "DISABLE(%d)\n", portIndex);
+  send_cmd(cmd);
+}
+
+void CRGGripper::read_recv(){
+  printf("%s\n", msgRecv);
+}
+
+
 
 /*************************************************************************
  * @class: RobotiQ
@@ -209,7 +216,7 @@ int RobotiQ::read_port(uint8_t* rx, int rxLen){
   }
 }
 
-void RobotiQ::open_to_cmd(double width) {
+void RobotiQ::go(double width) {
   if (width <= 0) width = 0; 
   else if (width > 80) width = 80;
 

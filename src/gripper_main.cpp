@@ -44,7 +44,11 @@ int main(int argc, char** argv) {
     command = scanKeyboard();
     switch (command) {
     case 'y':
-      pos = int(crgGripper.read_pos() - 1.0);
+      pos = 50;
+      crgGripper.go(pos,5);
+      break;
+    case 'o':
+      pos = 80;
       crgGripper.go(pos);
       break;
     case 'h':

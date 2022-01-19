@@ -70,8 +70,12 @@ void add_joint_destination(PATH& path, NUMBUF& inputData);
 void add_cartesion_destination(PATH& path, NUMBUF& inputData, THETA curTheta);
 void robot_go_home(THETA curTheta);
 void pivot_about_points(TRIARR& state, TRIARR command, double time);
+bool plane_gripper_translate(double command, float time);
 void instant_command(THETA curTheta);
 void go_to_pose(Mat4d tran, THETA curTheta, double time);
+void go_to_joint(THETA theta, double time);
 bool wait_for_path_clear(void);
+bool plane_screw(Arr3d screw, float time);
+bool plane_pivot(Arr3d command, float time);
 #endif
 

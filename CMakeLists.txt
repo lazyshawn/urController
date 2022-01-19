@@ -96,6 +96,7 @@ add_executable(ur_bin
   src/ur5e_driver.cpp
   src/ur5e_interface.cpp
   src/gripper_interface.cpp
+  src/gripper_driver.cpp
 )
 
 # Link the demo_lib target with the demo_bin target

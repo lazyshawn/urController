@@ -30,10 +30,12 @@ public:
   ~CRGGripper();
   void send_cmd(std::string);
   void home();
+  void go(float destination, float force_);
   void go(float destination);
   float read_pos();
   void disable();
   void read_recv();
+  void read_config();
 };
 
 

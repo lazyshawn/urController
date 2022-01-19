@@ -3,6 +3,7 @@
 extern urConfig urconfig;
 extern ThreadManager threadManager;
 extern PathQueue pathQueue;
+extern CRGGripper gripper;
 
 /*************************************************************************
  * @func  : interface_thread_function
@@ -57,6 +58,22 @@ void interface_thread_function(void) {
         << std::endl;
       threadManager.process = THREAD_INIT_GRASP;
       break;
+    case 't':
+      // 机械臂
+      if(threadManager.device.robot == OFF) { // 避免重复启动
+        robot_thread = std::thread(robot_thread_function);
+        threadManager.device.robot = IDLE;  // 机械臂线程挂起
+      }
+      sleep(2);
+      threadManager.process = THREAD_PIVOT;
+      break;
+    case 'o':
+      gripper.go(80, 51);
+      break;
+    case 'y':
+      gripper.go(40, 51);
+      break;
+    break;
     // 回车和换行
     case 10: case 13: break;
     // Exit (e/E/ESC)
@@ -188,6 +205,7 @@ void teleoperate_robot(void) {
   TRIARR state, circleCmd;
   bool process = true;
 
+  Arr3d cmdState;
   std::cout << 
     "\n*******************************************************\n" <<
     "=== Remote control of the robot \n" <<
@@ -251,29 +269,15 @@ void teleoperate_robot(void) {
       inputData[6] = increTime; inputData[4] = -1;
       add_displacement(pathLocal, inputData);
       break;
-    // close robotiQ (y/Y)
-    case 'y': case 'Y':
-      pathLocal.angleServo = OFF;
-      inputData[6] = increTime;
-      inputData[8] = 80;
-      add_displacement(pathLocal, inputData);
-      break;
-    // open robotiQ (o/O)
-    case 'o': case 'O':
-      pathLocal.angleServo = OFF;
-      inputData[6] = increTime;
-      inputData[8] = 2;
-      add_displacement(pathLocal, inputData);
-      break;
     // Show the information of robot
     case 'p': case 'P': display_current_information(urConfigData); break;
     // Test
     case 't': 
-      tiltAngle = -M_PI/2 - urConfigData.curTheta[1] - urConfigData.curTheta[2]
-        - urConfigData.curTheta[3];
-      // state = {urConfigData.curTwist[0], urConfigData.curTwist[2], tiltAngle};
-      circleCmd = {500, 20, 20*Deg2Rad};
-      pivot_about_points(state, circleCmd, 3);
+      // cmdState = {322, -84, 5*deg2rad};
+      // cmdState = {318, -38, -10*deg2rad};
+      // plane_pivot(cmdState, 5);
+      cmdState = {-10, -5, 0};
+      plane_screw(cmdState,5);
       break;
     case 27:
       process = false;

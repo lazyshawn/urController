@@ -51,6 +51,7 @@ void camera_thread_function(void) {
   }
 
   objState.update(&objStateData);
+  std::cout << objStateData.markerPose << std::endl;
   cv::destroyAllWindows();
   sleep(1);
   std::cout << "Thread terminated: camera_thread" << std::endl;

@@ -38,6 +38,40 @@ typedef Eigen::Matrix<double,6,6> Mat6d;
 typedef std::array<double,6> ARRAY;  // 六维数组
 typedef std::array<double,6> THETA;  // 关节角_6
 typedef std::array<double,6> TWIST;  // 位姿
+typedef std::array<double,3> Arr3d;
+
+// 路径
+#define PATH_GOING 0
+#define PATH_DONE  1
+#define PATH_CLEAR 2
+#define PATH_INIT 255
+// 伺服模式
+#define ANGLE_SERVO 0
+#define VELOCITY_SERVO 1
+#define SLIDE_SERVO 2
+#define PIVOT_SERVO 3
+struct PATH {
+  PATH () {
+    servoMode = ANGLE_SERVO;
+    status = PATH_INIT;
+    delT = 0.008;
+    velocity = {0,0,0,0,0,0};
+    freq = 1/delT;
+    interpMode = 2;
+    fingerPos = -1;
+  }
+
+  double beginTime;  // 开始时间
+  double freq;       // 插补频率: 总时间的倒数
+  unsigned char servoMode;   // 角度伺服标志
+  unsigned char status;      // 轨迹完成标志
+  unsigned char interpMode;    // 插补模式
+  ARRAY orig;        // 插值起点(角度伺服) [mm]
+  ARRAY goal;        // 插值终点(角度伺服) [mm]
+  ARRAY velocity;    // 速度命令(位姿伺服) [mm/s, rad/s]
+  float delT;       // 伺服周期时间
+  float fingerPos;  // 手指位置
+};
 
 /*************************************************************************
  * @func : calc_joint
@@ -52,6 +86,8 @@ int calcJnt(THETA q);
 *************************************************************************/
 bool plane_kinematics(std::array<double,3>& state);
 THETA plane_invese_kinematics(std::array<double,3>& state);
+THETA plane_jacobian(Vec3d twist);
+THETA plane_jacobian(Vec3d twist, float time);
 
 /*************************************************************************
  * @func : ur_kinematics

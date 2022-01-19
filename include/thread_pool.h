@@ -24,6 +24,7 @@
 #define THREAD_EXIT 255
 #define THREAD_SETUP 1
 #define THREAD_INIT_GRASP 2
+#define THREAD_PIVOT 3
 // 节点状态
 #define OFF 0
 #define ON 1

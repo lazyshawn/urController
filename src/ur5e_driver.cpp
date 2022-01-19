@@ -6,7 +6,8 @@
  * ======================================================================
 *************************************************************************/
 // 各关节角的正余弦值
-double c1, s1, c2, s2, c3, s3, c4, s4, c5, s5, c6, s6, c23, s23, c234, s234;
+double c1, s1, c2, s2, c3, s3, c4, s4, c5, s5, c6, s6, c23, s23, c234, s234,
+       c34, s34;
 // 关节角度
 double q2, q3, q4;
 
@@ -25,11 +26,13 @@ int calcJnt(THETA q) {
   c6 = cos(q[5]);  s6 = sin(q[5]);
   c23 = cos(q[1]+q[2]); s23 = sin(q[1]+q[2]);
   c234 = cos(q[1]+q[2]+q[3]); s234 = sin(q[1]+q[2]+q[3]);
+  c34 = cos(q[2]+q[3]); s34 = sin(q[2]+q[3]);
   q2 = q[1]; q3 = q[2]; q4 = q[3];
   return 0;
 }
 
 // 平面内运动的正运动学
+// state[2] 为指尖连线与x轴正向的夹角(逆时针为正)
 bool plane_kinematics(std::array<double,3>& state) {
   state[0] = DH_A2*c2 + DH_A3*c23 - DH_D5*s234 - DH_D6*c234;
   state[1] = DH_D1 - DH_A2*s2 - DH_A3*s23 - DH_D5*c234 + DH_D6*s234;
@@ -54,16 +57,23 @@ THETA plane_invese_kinematics(std::array<double,3>& state) {
   theta[1] = atan2(B2/delta, A2/delta);
   theta[3] = q - theta[1] - theta[2];
   // Wrap qJoint[3] to (-pi,pi]
-  if (theta[3] > M_PI) {
-    theta[3] -= 2*M_PI;
-  } else if (theta[3] < -M_PI) {
-    theta[3] += 2*M_PI;
-  }
+  swap_joint(theta[3]);
   return theta;
 }
 
-THETA plane_jacobian() {
-
+// 平面内的 Jacobian 矩阵
+// 速度旋量对应的是单位时间内的旋量，后续记得转换成伺服周期内的速度
+THETA plane_jacobian(Vec3d twist) {
+  Mat3d jcb;
+  Vec3d q234;
+  THETA dq;
+  jcb(0,0) = jcb(0,1) = jcb(0,2) = -1;
+  jcb(1,2) = -82.3             ; jcb(2,2) = 94.65;              // jcb4
+  jcb(1,1) = jcb(1,2)+392.25*c4; jcb(2,1) = jcb(2,2)-392.25*s4; // jcb3
+  jcb(1,0) = jcb(1,1)+425*c34  ; jcb(2,0) = jcb(2,1)-425*s34;   // jcb2
+  q234 = jcb.inverse()*twist;
+  dq = {0,q234(0),q234(1),q234(2),0,0};
+  return dq;
 }
 
 

@@ -4,6 +4,9 @@
 1. [Appendix A. ur\_kinematics.m](#✨-appendix-a.-ur_kinematics.m)
 1. [Appendix B. ur\_simulate.m](#✨-appendix-b.-ur_simulate.m)
 
+$$
+\mathcal{V}
+$$
 ## ✨ UR5 configuration
 ![ur5-configuration](../pics/UR5-Configuration.svg)
 
@@ -38,14 +41,6 @@ M = \left[ {\begin{array}{ccc}
 0 & -1 & 0 & -5.191-\Delta y \\
 0 & 0 & 0 & 1
 \end{array}} \right]
-$$
-
-$$
-\left[\begin{matrix}-0.125560390530269 & 0.00251653976245647 & 0.000861604140727933\\0.358364762827489 & -0.00207065880651836 & 0.00198573209773934\\-1.23280437229722 & -0.000445880955938113 & -0.00284733623846727\end{matrix}\right]
-$$
-
-$$
-\left[\begin{matrix}0.125560390530269\\-0.358364762827489\\1.23280437229722\end{matrix}\right]
 $$
 
 每个关节螺旋轴相对于工具坐标系的旋量坐标为如下：

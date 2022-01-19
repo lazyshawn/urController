@@ -47,33 +47,5 @@ typedef std::array<double,7> POS;
 typedef std::array<double,10> NUMBUF;
 typedef std::array<double,3> TRIARR;
 
-// 路径
-#define PATH_GOING 0
-#define PATH_DONE  1
-#define PATH_CLEAR 2
-#define PATH_INIT 255
-struct PATH {
-  PATH () {
-    angleServo = true;
-    status = PATH_INIT;
-    delT = (double)NSEC_PER_PERIOD / (double)NSEC_PER_SEC;
-    velocity = {0,0,0,0,0,0};
-    freq = 1/delT;
-    interpMode = 2;
-    fingerPos = -1;
-  }
-
-  double beginTime;  // 开始时间
-  double freq;       // 插补频率: 总时间的倒数
-  bool angleServo;   // 角度伺服标志
-  unsigned char status;      // 轨迹完成标志
-  unsigned char interpMode;    // 插补模式
-  ARRAY orig;        // 插值起点(角度伺服) [mm]
-  ARRAY goal;        // 插值终点(角度伺服) [mm]
-  ARRAY velocity;    // 速度命令(位姿伺服) [mm/s, rad/s]
-  double delT;       // 伺服周期时间
-  double fingerPos;  // 手指位置
-};
-
 #endif
 

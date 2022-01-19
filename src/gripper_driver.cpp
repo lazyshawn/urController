@@ -49,6 +49,10 @@ float CRGGripper::read_pos(){
 }
 
 void CRGGripper::go(float destination){
+  go(destination, 100);
+}
+
+void CRGGripper::go(float destination, float force_){
   // 限位
   bool getDes = false;
   if(destination >= 85){
@@ -57,7 +61,8 @@ void CRGGripper::go(float destination){
     destination = 32;
   }
   grip = release = destination;
-  sprintf(cmd, "GRIPCFG[0][0]=[\"\",%d,%d,%d,0,0,0,0,0]\n",  grip, release, 100);
+  int force = force_;
+  sprintf(cmd, "GRIPCFG[0][0]=[\"\",%d,%d,%d,0,0,0,0,0]\n",  grip, release, force);
   send_cmd(cmd);
   send_cmd("GRIP(0,0)\n");
   unsigned int status = 0;
@@ -78,6 +83,10 @@ void CRGGripper::read_recv(){
   printf("%s\n", msgRecv);
 }
 
+void CRGGripper::read_config(){
+  send_cmd("GRIPCFG[0][0]?\n");
+  printf("%s\n", msgRecv);
+}
 
 
 /*************************************************************************

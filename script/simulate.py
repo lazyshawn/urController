@@ -6,6 +6,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy.interpolate import splprep, splev
 import math
+import sympy as sym
+from sympy import sin,cos
 
 
 ####################################################################
@@ -164,9 +166,22 @@ def ur_jacobian(q):
   tjcb = np.transpose(jcb)
   ijcb = np.linalg.inv(jcb)
 
+# 雅克比
+def jacobian(twist, q):
+    c4 = cos(q[3]); s4 = sin(q[3])
+    c34 = cos(q[2]+q[3]); s34 = sin(q[2]+q[3])
+    jb4 = sym.Matrix([-1, -82.3, 94.65])
+    jb3 = sym.Matrix([-1, jb4[1]+392.25*c4, jb4[2]-392.25*s4])
+    #  jb3 = sym.Matrix([0, -1, 0, 392.25*c4-82.3, 0, 94.65-392.25*s4])
+    jb2 = sym.Matrix([-1, jb3[1]+425*c34, jb3[2]-425*s34])
+    #  jb2 = sym.Matrix([0, -1, 0, 392.25*c4-82.3+425*c34, 0, 94.65-392.25*s4-425*s34])
+    jcb = sym.Matrix([[jb2, jb3, jb4]])**(-1)
+    #  sym.print_latex(jcb*twist)
+    return jcb*twist
+
 
 dt = 8     # 采样间隔 (ms)
-T  = 500  # 运行时间 (ms)
+T  = 1000  # 运行时间 (ms)
 w  = 40*d2r # 角速度 (rad/s)
 v  = 0      # 线速度 (mm/s)
 nn = int(T/dt+1) # 采样点数
@@ -175,10 +190,10 @@ nn = int(T/dt+1) # 采样点数
 q0 = np.array([0, -98.9, 117.80, -108.9, -90, 90])*d2r
 pos = np.zeros((3,nn))
 q_jnt = np.zeros((6,nn))
-dx = np.array([v/(T/dt), 0, 0, w/(T/dt), 0, 0]).reshape((6,1))  # 每个周期的状态变化
+#  dx = np.array([v/(T/dt), 0, 0, w/(T/dt), 0, 0]).reshape((6,1))  # 每个周期的状态变化
 time = np.linspace(0, int(T), int(T/dt+1)) # 时间
 
-ur_kinematics(q0)
+#  ur_kinematics(q0)
 #  pos[:,0] = Tran[0:3,3]
 #  ur_jacobian(q0)
 #  print(ijcb)
@@ -189,10 +204,12 @@ for tt in time:
   i = int(tt/dt)
   ur_kinematics(q)
   pos[:,i] = Tran[0:3,3]
-  ur_jacobian(q)
-  dq = ijcb@dx
+  #  ur_jacobian(q)
+  #  dq = ijcb@dx
+  dq234 = jacobian(sym.Matrix([-1,0,0]), q)
+  dq = np.array([0, dq234[0], dq234[1], dq234[2], 0, 0])*dt/1000
   q = q + dq
-  q_jnt[:,[i]] = q
+  q_jnt[:,i] = q
 
 # 初始状态
 #  q_jnt[:,0] = q0.reshape(1,6)
@@ -324,6 +341,6 @@ ax3.legend(loc='best')
 # make sure that the plots fit nicely in your figure
 plt.tight_layout()
 #  plt.savefig('../foo.svg')
-#  plt.show()
+plt.show()
 
 

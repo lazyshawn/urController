@@ -3,7 +3,7 @@
 extern urConfig urconfig;
 extern ThreadManager threadManager;
 extern PathQueue pathQueue;
-extern CRGGripper gripper;
+extern WSGGripper gripper;
 
 /*************************************************************************
  * @func  : interface_thread_function
@@ -66,12 +66,15 @@ void interface_thread_function(void) {
       }
       sleep(2);
       threadManager.process = THREAD_PIVOT;
+      gripper.move(60,20);
+      // move_ref_to_end(25, 5);
+      // gripper.move(100,10);
       break;
     case 'o':
-      gripper.go(80, 51);
+      gripper.move(100, 20);
       break;
     case 'y':
-      gripper.go(40, 51);
+      gripper.move(58, 20);
       break;
     break;
     // 回车和换行
@@ -273,11 +276,11 @@ void teleoperate_robot(void) {
     case 'p': case 'P': display_current_information(urConfigData); break;
     // Test
     case 't': 
-      // cmdState = {322, -84, 5*deg2rad};
+      cmdState = {322, -84, 10*deg2rad};
       // cmdState = {318, -38, -10*deg2rad};
-      // plane_pivot(cmdState, 5);
-      cmdState = {-10, -5, 0};
-      plane_screw(cmdState,5);
+      plane_pivot(cmdState, 5);
+      // cmdState = {-10, -5, 0};
+      // plane_screw(cmdState,5);
       break;
     case 27:
       process = false;

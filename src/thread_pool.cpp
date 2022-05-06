@@ -9,7 +9,7 @@ extern urConfig urconfig;
 extern PathQueue pathQueue;
 extern Force force;
 extern ObjState objState;
-extern CRGGripper gripper;
+extern WSGGripper gripper;
 
 
 /*************************************************************************
@@ -40,7 +40,7 @@ void init_grasp(void) {
       goalPose = urConfigData.tranMat * objStateData.markerPose;
       pick_and_place(goalPose);
 
-      gripper.go(40, 30);
+      gripper.move(40, 30);
       Arr3d cmdState;
       cmdState = {0, -19, -32*deg2rad};
       plane_screw(cmdState, 10);
@@ -50,7 +50,7 @@ void init_grasp(void) {
       //   sleep(1);
       // }
       // sleep(3);
-      gripper.go(52, 10);
+      gripper.move(52, 10);
       break;
     }
 
@@ -60,12 +60,13 @@ void init_grasp(void) {
       // THETA targetTheta = {0, -75.31, 116.18, -98.89, -90, 90};  // 旋转之前 52
       // THETA targetTheta = {0, -71.88, 112.93, -92.58, -90, 90};  // 旋转 55
       // THETA targetTheta = {0, -85.8, 126.92, -117.02, -90, 90};  // 绕#1手指旋转 59
-      THETA targetTheta = {0, -80.24, 119.79, -107.87, -90, 90};  // #1手指旋转、平移 59
+      // THETA targetTheta = {0, -80.24, 119.79, -107.87, -90, 90};  // #1手指旋转、平移 59
+      THETA targetTheta = {0, -78.54, 118.43, -96.74, -90, 90};  // WSG 旋转之前 58
       for (int i=0; i<6; ++i) {targetTheta[i] *= deg2rad;}
 
       go_to_joint(targetTheta, 8);
       // gripper.go(52,10);
-      gripper.go(59,10);
+      gripper.move(59,10);
       if(!wait_for_path_clear()) return;
 
       threadManager.process = THREAD_INIT;
@@ -90,7 +91,7 @@ void pick_and_place(Mat4d tranMat) {
   go_to_pose(objPose, urConfigData.curTheta, 5);
   // 等待机械臂运动完成
   if(!wait_for_path_clear()) return;
-  gripper.go(grip, 51);
+  gripper.move(grip, 51);
   objPose(2,3) = peakHigh;
   go_to_pose(objPose, urConfigData.curTheta, 5);
 
@@ -101,7 +102,7 @@ void pick_and_place(Mat4d tranMat) {
   // Place
   if(!wait_for_path_clear()) return;
   urConfigData = urconfig.get_data();
-  gripper.go(release);
+  gripper.move(release);
   goalPose(2,3) = 169;
   go_to_pose(goalPose, urConfigData.curTheta, 4);
 

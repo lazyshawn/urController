@@ -34,9 +34,9 @@ struct ThreadManager {
     memset(this, 0, sizeof(ThreadManager));
   }
   struct Device {
-    unsigned char camera, sensor, robot;
+    uint8_t camera, sensor, robot;
   }device;
-  unsigned char process;
+  uint8_t process;
 };
 
 void master_thread_function(void);

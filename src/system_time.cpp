@@ -4,10 +4,18 @@
 
 #include "../include/system_time.h"
 
+// 系统时间
+struct timespec t;
+uint8_t timerState;
 // 计时开始的时间戳
 unsigned long long int tsc0;
 int timer_counter = 0;
 static double StartTime = 0.0;
+
+/* 开始计时 */
+void timer_start() {
+
+}
 
 /* 获取当前时间 */
 // 从计时开始经过的时间(t/s)

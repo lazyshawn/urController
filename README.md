@@ -1,3 +1,9 @@
+## ✨ ⚠️ Deprecated ⚠️
+<!-- https://github.com/kevinoid/vim-jsonc/blob/master/README.md -->
+This repository has been archived. The new version refers to
+[lazyshawn/multi_thread_controller](
+https://github.com/lazyshawn/multi_thread_controller)
+
 ## ✨ urController
 [![standard-readme compliant](
 https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](

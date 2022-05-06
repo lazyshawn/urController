@@ -77,5 +77,6 @@ void go_to_joint(THETA theta, double time);
 bool wait_for_path_clear(void);
 bool plane_screw(Arr3d screw, float time);
 bool plane_pivot(Arr3d command, float time);
+bool move_ref_to_end(double direction, float time);
 #endif
 

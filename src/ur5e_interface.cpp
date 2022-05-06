@@ -3,6 +3,7 @@
 urConfig urconfig;
 PathQueue pathQueue;
 extern ThreadManager threadManager;
+extern struct timespec t;
 
 /*************************************************************************
  * @class: urConfig
@@ -94,10 +95,6 @@ void robot_thread_function(void) {
   std::string ur_ip = "10.249.181.201";
   // UR的通信端口
   unsigned int ur_post = 50007;
-  // 夹爪通信串口
-  char rbtqPort[] = "/dev/ttyUSB0";
-  // 系统时间
-  struct timespec t;
   // 线程共享变量的局部备份
   urConfig::Data urConfigData = urconfig.get_data();
   std::vector<double> jnt_angle(6);
@@ -488,5 +485,38 @@ bool wait_for_path_clear(void) {
       if(urConfigData.path.status == PATH_CLEAR) return true;
     }
   }
+}
+
+/*************************************************************************
+ * @func : move_ref_to_end(Arr3d direction, float time)
+ * @brief: 相对末端运动
+ * @param: direction [x, y, z]: 运动方向在末端坐标系下的表示, time: 时间;
+*************************************************************************/
+// 这只是沿末端x轴方向运动
+bool move_ref_to_end(double distance, float time) {
+  // 开始时系统的状态
+  THETA theta = {0, 0, 0, 0, -M_PI/2, M_PI/2};
+  Arr3d stateInit, state;
+  plane_kinematics(stateInit);
+  double x0 = stateInit[0], z0 = stateInit[1], q0 = stateInit[2];
+  urConfig::Data urConfigData = urconfig.get_data();
+  double dirX = urConfigData.tranMat(0,0);
+  double dirZ = urConfigData.tranMat(2,0);
+  double dr = sqrt(dirX*dirX + dirZ*dirZ);
+  std::vector<PATH> pathBuf;
+  PATH path;
+
+  double gain, temp;
+  // 取消角度伺服标志
+  path.servoMode = VELOCITY_SERVO;
+  // 读入路径信息
+  path.freq = 1/time;
+  gain = path.freq * path.delT;
+  path.velocity[0] = distance*dirX/dr;
+  path.velocity[3] = distance*dirZ/dr;
+  // 归一化: 转化为一个伺服周期内的位移量
+  for (int i=0; i<6; ++i) path.velocity[i] *= gain;
+  pathQueue.push(path);
+  return true;
 }
 

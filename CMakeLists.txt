@@ -72,9 +72,9 @@ target_link_libraries(camera_bin ${OpenCV_LIBS} -lopencv_aruco)
 target_link_libraries(camera_bin -lrealsense2)
 # Force Sensor
 add_executable(forceSensor_bin
-  src/sensor_driver.cpp
-  src/sensor_interface.cpp
-  src/sensor_main.cpp
+  src/sensor_uskin/sensor_driver.cpp
+  src/sensor_uskin/sensor_interface.cpp
+  src/sensor_uskin/sensor_main.cpp
 )
 target_link_libraries(forceSensor_bin Ginkgo_Driver)
 # Gripper
@@ -89,8 +89,8 @@ add_executable(ur_bin
   src/thread_pool.cpp
   src/data_exchange.cpp
   src/user_interface.cpp
-  src/sensor_driver.cpp
-  src/sensor_interface.cpp
+  # src/sensor_driver.cpp
+  # src/sensor_interface.cpp
   src/camera_driver.cpp
   src/camera_interface.cpp
   src/ur5e_driver.cpp

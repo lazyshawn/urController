@@ -348,14 +348,9 @@ bool velocity_interpolation(double offsetTime, double freq, THETA curTheta,
   Mat6d ijcb = ur_jacobian().inverse();
   dq = ijcb*velo;
   // 当前运动时间占总时间的比例大于1，即超过预定时间，插值点不变，返回已完成
-  if (time >= 1) {
-    // 路径停止前，给一定时间让机械臂停止
-    for (int i=0; i<6; ++i) refTheta[i] = refTheta[i];
-    if (time >= 1.1) {
-      return true;
-    }
-  }
-  for (int i=0; i<6; ++i) refTheta[i] += dq(i);
+  if (time >= 1) { return true; }
+  for (int i = 0; i < 6; ++i)
+    refTheta[i] += dq(i);
   return false;
 } // bool velocity_interpolation()
 
